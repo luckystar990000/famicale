@@ -1,0 +1,135 @@
+:root {
+  color-scheme: light;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+
+  --tint: #007aff;
+  --tint-pressed: #0062cc;
+  --bg-base: linear-gradient(165deg, #ffd6e7 0%, #d4c5ff 32%, #b8d8ff 62%, #c5f0ee 100%);
+  --bg-grouped: #f2f2f7;
+  --bg-card: rgba(255, 255, 255, 0.62);
+  --bg-card-solid: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-inner-hi: rgba(255, 255, 255, 0.75);
+  --separator: rgba(60, 60, 67, 0.36);
+  --separator-opaque: rgba(255, 255, 255, 0.5);
+  --label: #1c1c1e;
+  --label-secondary: rgba(60, 60, 67, 0.62);
+  --label-tertiary: rgba(60, 60, 67, 0.32);
+  --grouped-header: rgba(60, 60, 67, 0.58);
+  --destructive: #ff3b30;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-grouped);
+  color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+.app-bg {
+  position: relative;
+  background-image: var(--bg-base);
+  background-attachment: scroll;
+}
+
+.app-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 20% 10%, rgba(255, 220, 240, 0.55) 0%, transparent 70%),
+    radial-gradient(50% 50% at 90% 30%, rgba(190, 220, 255, 0.5) 0%, transparent 65%),
+    radial-gradient(60% 50% at 50% 100%, rgba(200, 240, 230, 0.5) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: 16px;
+}
+
+button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input[type="date"] {
+  text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  width: 100%;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.96); }
+}
+
+.badge-pulse {
+  animation: badge-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-pulse { animation: none; }
+}
+
+.press-feedback {
+  transition: background-color 0.1s ease, opacity 0.1s ease;
+}
+.press-feedback:active {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.ios-list > * {
+  position: relative;
+}
+
+.ios-list > *:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: var(--separator);
+  transform: scaleY(0.5);
+  transform-origin: top;
+  pointer-events: none;
+}
+
+.ios-list {
+  position: relative;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
