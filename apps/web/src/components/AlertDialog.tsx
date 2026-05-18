@@ -66,7 +66,7 @@ export default function AlertDialog({
           position: 'relative',
           width: '100%',
           maxWidth: 320,
-          borderRadius: 28,
+          borderRadius: 27,
           background: 'rgba(245, 245, 245, 0.72)',
           backdropFilter: 'saturate(180%) blur(32px)',
           WebkitBackdropFilter: 'saturate(180%) blur(32px)',

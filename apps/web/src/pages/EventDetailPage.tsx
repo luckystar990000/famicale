@@ -467,8 +467,9 @@ function TagInputInSheet({ value, onChange, knownTags }: {
 const sheetInputStyle: React.CSSProperties = {
   width: '100%',
   minWidth: 0,
-  padding: '12px 14px',
-  borderRadius: 10,
+  maxWidth: '100%',
+  padding: '14px 20px',
+  borderRadius: 27,
   border: 'none',
   background: 'var(--bg-card)',
   fontSize: 17,
@@ -478,6 +479,8 @@ const sheetInputStyle: React.CSSProperties = {
   lineHeight: 1.4,
   textAlign: 'left',
   boxSizing: 'border-box',
+  WebkitAppearance: 'none',
+  appearance: 'none',
 }
 
 function heroText(status: EventStatus, cancelled: boolean): {

@@ -56,7 +56,7 @@ export default function Sheet({
           backdropFilter: 'saturate(180%) blur(28px)',
           WebkitBackdropFilter: 'saturate(180%) blur(28px)',
           border: '0.5px solid var(--glass-border)',
-          borderRadius: '24px 24px 0 0',
+          borderRadius: '27px 27px 0 0',
           boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 -10px 40px rgba(0, 0, 0, 0.18)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
@@ -113,7 +113,7 @@ export default function Sheet({
             </button>
           ) : <span style={{ width: 34, height: 34 }} />}
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px 20px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 20px 20px' }}>
           <h2 style={{
             margin: '4px 0 16px',
             fontSize: 22,

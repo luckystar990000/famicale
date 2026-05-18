@@ -313,8 +313,8 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
       display: 'flex',
       alignItems: 'center',
       background: 'rgba(120, 120, 128, 0.12)',
-      borderRadius: 10,
-      padding: '0 10px',
+      borderRadius: 27,
+      padding: '0 14px',
       height: 36,
     }}>
       <Search size={16} strokeWidth={2.2} color="var(--label-tertiary)" style={{ flexShrink: 0 }} />
@@ -375,7 +375,7 @@ function SegmentedControl({ value, onChange, counts }: {
       WebkitBackdropFilter: 'saturate(160%) blur(18px)',
       border: '0.5px solid rgba(255, 255, 255, 0.55)',
       boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55)',
-      borderRadius: 10,
+      borderRadius: 27,
       padding: 3,
       marginBottom: 14,
       gap: 1,
@@ -392,7 +392,7 @@ function SegmentedControl({ value, onChange, counts }: {
               flex: '0 0 auto',
               padding: '6px 11px',
               border: 'none',
-              borderRadius: 7,
+              borderRadius: 27,
               background: active ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
               color: 'var(--label)',
               fontWeight: active ? 600 : 500,
@@ -452,7 +452,7 @@ function EventCard({ schedule, status, onTagClick }: {
         WebkitBackdropFilter: 'saturate(160%) blur(22px)',
         border: '0.5px solid var(--glass-border)',
         boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 18px rgba(0, 0, 0, 0.06)',
-        borderRadius: 14,
+        borderRadius: 27,
         overflow: 'hidden',
         opacity: cancelled ? 0.55 : 1,
       }}

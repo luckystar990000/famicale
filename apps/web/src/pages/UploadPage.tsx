@@ -165,7 +165,7 @@ function DropArea({ onClick }: { onClick: () => void }) {
         WebkitBackdropFilter: 'saturate(160%) blur(22px)',
         border: '0.5px solid var(--glass-border)',
         boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 22px rgba(0,0,0,0.05)',
-        borderRadius: 16,
+        borderRadius: 27,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -176,7 +176,7 @@ function DropArea({ onClick }: { onClick: () => void }) {
       }}
     >
       <div style={{
-        width: 64, height: 64, borderRadius: 16,
+        width: 64, height: 64, borderRadius: 27,
         background: 'rgba(0, 122, 255, 0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
@@ -205,7 +205,7 @@ function PreviewCard({ file, previewUrl, status }: {
       WebkitBackdropFilter: 'saturate(160%) blur(22px)',
       border: '0.5px solid var(--glass-border)',
       boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 22px rgba(0,0,0,0.05)',
-      borderRadius: 16,
+      borderRadius: 27,
       overflow: 'hidden',
     }}>
       <div style={{
