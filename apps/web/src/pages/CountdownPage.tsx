@@ -150,7 +150,7 @@ export default function CountdownPage() {
           onClick={() => navigate('/share')}
           aria-label="共有"
           style={{
-            width: 38, height: 38, borderRadius: 999,
+            width: 44, height: 44, borderRadius: 999,
             background: 'rgba(255, 255, 255, 0.55)',
             backdropFilter: 'saturate(180%) blur(14px)',
             WebkitBackdropFilter: 'saturate(180%) blur(14px)',
@@ -161,7 +161,7 @@ export default function CountdownPage() {
             flexShrink: 0,
           }}
         >
-          <Share2 size={18} strokeWidth={2.2} color="var(--label)" />
+          <Share2 size={22} strokeWidth={2.2} color="var(--label)" />
         </button>
       </div>
 

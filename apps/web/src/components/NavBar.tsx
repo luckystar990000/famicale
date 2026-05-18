@@ -47,7 +47,7 @@ export default function NavBar({ title, back, rightAction, inline }: Props) {
       background: 'rgba(255, 255, 255, 0.65)',
     }}>
       <div style={{
-        height: 48,
+        height: 60,
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center',
@@ -63,9 +63,9 @@ export default function NavBar({ title, back, rightAction, inline }: Props) {
               style={circleBtn}
             >
               {back.icon === 'close' ? (
-                <X size={18} strokeWidth={2.8} color="var(--label-secondary)" />
+                <X size={22} strokeWidth={2.8} color="var(--label-secondary)" />
               ) : (
-                <ChevronLeft size={22} strokeWidth={2.5} color="var(--label)" />
+                <ChevronLeft size={26} strokeWidth={2.5} color="var(--label)" />
               )}
             </button>
           )}
@@ -93,8 +93,8 @@ export default function NavBar({ title, back, rightAction, inline }: Props) {
                 disabled={rightAction.disabled}
                 aria-label={rightAction.label}
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 40,
+                  height: 40,
                   borderRadius: 999,
                   background: rightAction.disabled
                     ? 'rgba(120, 120, 128, 0.16)'
@@ -110,7 +110,7 @@ export default function NavBar({ title, back, rightAction, inline }: Props) {
                 }}
               >
                 <Check
-                  size={20}
+                  size={24}
                   strokeWidth={3}
                   color={rightAction.disabled ? 'var(--label-tertiary)' : '#fff'}
                 />
@@ -143,8 +143,8 @@ export default function NavBar({ title, back, rightAction, inline }: Props) {
 }
 
 const circleBtn: React.CSSProperties = {
-  width: 34,
-  height: 34,
+  width: 44,
+  height: 44,
   borderRadius: 999,
   background: 'rgba(255, 255, 255, 0.55)',
   backdropFilter: 'saturate(180%) blur(14px)',
@@ -161,8 +161,8 @@ const circleBtn: React.CSSProperties = {
 }
 
 const pillBtn: React.CSSProperties = {
-  height: 34,
-  padding: '0 16px',
+  height: 44,
+  padding: '0 20px',
   borderRadius: 999,
   background: 'rgba(255, 255, 255, 0.55)',
   backdropFilter: 'saturate(180%) blur(14px)',

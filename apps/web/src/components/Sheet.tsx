@@ -80,7 +80,7 @@ export default function Sheet({
             aria-label="閉じる"
             style={circleBtn}
           >
-            <X size={18} strokeWidth={2.8} color="var(--label-secondary)" />
+            <X size={22} strokeWidth={2.8} color="var(--label-secondary)" />
           </button>
           {onConfirm ? (
             <button
@@ -89,8 +89,8 @@ export default function Sheet({
               disabled={confirmDisabled}
               aria-label="保存"
               style={{
-                width: 34,
-                height: 34,
+                width: 44,
+                height: 44,
                 borderRadius: 999,
                 background: confirmDisabled
                   ? 'rgba(120, 120, 128, 0.16)'
@@ -106,12 +106,12 @@ export default function Sheet({
               }}
             >
               <Check
-                size={20}
+                size={24}
                 strokeWidth={3}
                 color={confirmDisabled ? 'var(--label-tertiary)' : '#fff'}
               />
             </button>
-          ) : <span style={{ width: 34, height: 34 }} />}
+          ) : <span style={{ width: 44, height: 44 }} />}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 20px 20px' }}>
           <h2 style={{
@@ -133,8 +133,8 @@ export default function Sheet({
 }
 
 const circleBtn: React.CSSProperties = {
-  width: 34,
-  height: 34,
+  width: 44,
+  height: 44,
   borderRadius: 999,
   background: 'rgba(255, 255, 255, 0.55)',
   backdropFilter: 'saturate(180%) blur(14px)',
