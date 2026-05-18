@@ -1,4 +1,4 @@
-import type { ReactNode, CSSProperties } from 'react'
+import { Children, type ReactNode, type CSSProperties } from 'react'
 
 interface SectionProps {
   header?: string
@@ -8,6 +8,7 @@ interface SectionProps {
 }
 
 export function ListSection({ header, footer, children, style }: SectionProps) {
+  const singleRow = Children.count(children) === 1
   return (
     <div style={{ marginBottom: 16, ...style }}>
       {header && (
@@ -26,7 +27,7 @@ export function ListSection({ header, footer, children, style }: SectionProps) {
         WebkitBackdropFilter: 'saturate(160%) blur(22px)',
         border: '0.5px solid var(--glass-border)',
         boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 22px rgba(0, 0, 0, 0.05)',
-        borderRadius: 14,
+        borderRadius: singleRow ? 999 : 18,
         overflow: 'hidden',
         margin: '0 16px',
       }}>
@@ -59,8 +60,8 @@ interface RowProps {
 export function ListRow({ label, value, children, onClick, trailing, destructive, align = 'horizontal' }: RowProps) {
   const interactive = !!onClick
   const baseStyle: CSSProperties = {
-    minHeight: 44,
-    padding: '11px 16px',
+    minHeight: 54,
+    padding: '14px 20px',
     boxSizing: 'border-box',
     display: 'flex',
     alignItems: align === 'horizontal' ? 'center' : 'stretch',
