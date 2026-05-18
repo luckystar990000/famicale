@@ -90,7 +90,7 @@ export function ListRow({ label, value, children, onClick, trailing, destructive
           {(value !== undefined || children) && (
             <span style={{
               marginLeft: label !== undefined ? 'auto' : 0,
-              color: 'var(--label-secondary)',
+              color: destructive ? 'var(--destructive)' : 'var(--label-secondary)',
               display: 'flex',
               alignItems: 'center',
               gap: 8,

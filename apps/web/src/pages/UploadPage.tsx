@@ -337,11 +337,11 @@ function formatDate(iso: string): string {
 function primaryBtn(disabled: boolean): React.CSSProperties {
   return {
     flex: 2,
-    padding: '12px 0',
+    padding: '14px 0',
     background: 'var(--tint)',
     color: '#fff',
     border: 'none',
-    borderRadius: 12,
+    borderRadius: 999,
     fontSize: 15,
     fontWeight: 600,
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -353,13 +353,14 @@ function primaryBtn(disabled: boolean): React.CSSProperties {
 function secondaryBtn(disabled: boolean): React.CSSProperties {
   return {
     flex: 1,
-    padding: '12px 0',
+    padding: '14px 0',
     background: 'rgba(255, 255, 255, 0.55)',
-    backdropFilter: 'saturate(160%) blur(14px)',
-    WebkitBackdropFilter: 'saturate(160%) blur(14px)',
+    backdropFilter: 'saturate(180%) blur(14px)',
+    WebkitBackdropFilter: 'saturate(180%) blur(14px)',
     border: '0.5px solid var(--glass-border)',
+    boxShadow: 'inset 0 1px 0 var(--glass-inner-hi)',
     color: 'var(--label)',
-    borderRadius: 12,
+    borderRadius: 999,
     fontSize: 15,
     fontWeight: 500,
     cursor: disabled ? 'not-allowed' : 'pointer',

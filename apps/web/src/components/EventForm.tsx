@@ -74,7 +74,7 @@ export default function EventForm({ values, onChange, knownTags }: Props) {
                   height: 24,
                   borderRadius: '50%',
                   border: 'none',
-                  background: '#c7c7cc',
+                  background: 'rgba(120, 120, 128, 0.45)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

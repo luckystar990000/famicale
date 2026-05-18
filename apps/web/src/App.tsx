@@ -52,6 +52,7 @@ export default function App() {
         flexDirection: 'column',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
+        position: 'relative',
       }}
     >
       <ScrollManager />
@@ -59,7 +60,9 @@ export default function App() {
         flex: 1,
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        paddingBottom: viewerMode ? 'env(safe-area-inset-bottom)' : 0,
+        paddingBottom: viewerMode
+          ? 'env(safe-area-inset-bottom)'
+          : 'calc(env(safe-area-inset-bottom) + 84px)',
       }}>
         <Routes>
           <Route path="/" element={<CountdownPage />} />
@@ -75,10 +78,19 @@ export default function App() {
 
       {!viewerMode && (
         <nav style={{
-          flex: '0 0 auto',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: 'calc(env(safe-area-inset-bottom) + 10px)',
           display: 'flex',
-          background: 'rgba(255, 255, 255, 0.65)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          gap: 2,
+          padding: 6,
+          background: 'rgba(255, 255, 255, 0.55)',
+          backdropFilter: 'saturate(180%) blur(28px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(28px)',
+          border: '0.5px solid var(--glass-border)',
+          boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 10px 30px rgba(0, 0, 0, 0.12)',
+          borderRadius: 999,
         }}>
           {NAV_ITEMS.map(({ to, label, Icon, end }) => (
             <NavLink
@@ -87,20 +99,23 @@ export default function App() {
               end={end}
               style={({ isActive }) => ({
                 flex: 1,
-                padding: '8px 0 4px',
+                padding: '8px 0 6px',
                 textDecoration: 'none',
                 fontSize: 10,
-                fontWeight: 500,
+                fontWeight: isActive ? 600 : 500,
                 color: isActive ? 'var(--tint)' : '#8e8e93',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 3,
+                gap: 2,
+                borderRadius: 999,
+                background: isActive ? 'rgba(0, 122, 255, 0.12)' : 'transparent',
+                transition: 'background 0.15s ease',
               })}
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={24} strokeWidth={2} color={isActive ? 'var(--tint)' : '#8e8e93'} />
+                  <Icon size={22} strokeWidth={2} color={isActive ? 'var(--tint)' : '#8e8e93'} />
                   <span>{label}</span>
                 </>
               )}

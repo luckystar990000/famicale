@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import NavBar from '../components/NavBar'
+import AlertDialog from '../components/AlertDialog'
 import { ListSection, ListRow } from '../components/List'
 import { useShare } from '../state/share'
 
 export default function SharePage() {
   const { shareUrl, generate, revoke } = useShare()
   const [copied, setCopied] = useState(false)
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
 
   async function copyUrl() {
     if (!shareUrl) return
@@ -23,10 +25,9 @@ export default function SharePage() {
     setCopied(false)
   }
 
-  function handleRevoke() {
-    if (confirm('共有 URL を無効化します。\n現在のリンクを知っている家族は見られなくなります。よろしいですか？')) {
-      revoke()
-    }
+  function handleRevokeConfirm() {
+    revoke()
+    setRevokeConfirmOpen(false)
   }
 
   return (
@@ -51,11 +52,11 @@ export default function SharePage() {
             onClick={handleGenerate}
             style={{
               width: '100%',
-              padding: '14px 0',
+              padding: '16px 0',
               background: 'var(--tint)',
               color: '#fff',
               border: 'none',
-              borderRadius: 12,
+              borderRadius: 999,
               fontSize: 16,
               fontWeight: 600,
               cursor: 'pointer',
@@ -93,12 +94,22 @@ export default function SharePage() {
           </ListSection>
 
           <ListSection>
-            <ListRow onClick={handleRevoke} destructive>
+            <ListRow onClick={() => setRevokeConfirmOpen(true)} destructive>
               共有を無効化する
             </ListRow>
           </ListSection>
         </>
       )}
+
+      <AlertDialog
+        open={revokeConfirmOpen}
+        title="共有 URL を無効化しますか？"
+        message="現在のリンクを知っている家族は見られなくなります。"
+        confirmLabel="無効化"
+        destructive
+        onConfirm={handleRevokeConfirm}
+        onCancel={() => setRevokeConfirmOpen(false)}
+      />
     </>
   )
 }

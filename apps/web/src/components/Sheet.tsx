@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { X, Check } from 'lucide-react'
 
 interface Props {
   open: boolean
@@ -7,7 +8,6 @@ interface Props {
   title: string
   onConfirm?: () => void
   confirmDisabled?: boolean
-  confirmLabel?: string
   children: ReactNode
 }
 
@@ -17,7 +17,6 @@ export default function Sheet({
   title,
   onConfirm,
   confirmDisabled,
-  confirmLabel = '保存',
   children,
 }: Props) {
   useEffect(() => {
@@ -42,7 +41,7 @@ export default function Sheet({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.4)',
+          background: 'rgba(0, 0, 0, 0.32)',
           opacity: open ? 1 : 0,
           transition: 'opacity 0.2s ease',
         }}
@@ -53,8 +52,12 @@ export default function Sheet({
           left: 0, right: 0, bottom: 0,
           maxWidth: 480,
           margin: '0 auto',
-          background: 'var(--bg-grouped)',
-          borderRadius: '16px 16px 0 0',
+          background: 'rgba(255, 255, 255, 0.55)',
+          backdropFilter: 'saturate(180%) blur(28px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(28px)',
+          border: '0.5px solid var(--glass-border)',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 -10px 40px rgba(0, 0, 0, 0.18)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
           paddingBottom: 'env(safe-area-inset-bottom)',
@@ -63,59 +66,84 @@ export default function Sheet({
           maxHeight: '85dvh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.12)',
         }}
       >
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
+          display: 'flex',
           alignItems: 'center',
-          padding: '12px 12px',
-          gap: 8,
-          borderBottom: '0.5px solid var(--separator)',
+          justifyContent: 'space-between',
+          padding: '12px 16px 0',
         }}>
           <button
             type="button"
             onClick={onClose}
-            style={{
-              justifySelf: 'start',
-              padding: '6px 12px',
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--tint)',
-              fontSize: 16,
-              fontWeight: 400,
-              cursor: 'pointer',
-            }}
+            aria-label="閉じる"
+            style={circleBtn}
           >
-            キャンセル
+            <X size={18} strokeWidth={2.8} color="var(--label-secondary)" />
           </button>
-          <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>{title}</span>
           {onConfirm ? (
             <button
               type="button"
               onClick={onConfirm}
               disabled={confirmDisabled}
+              aria-label="保存"
               style={{
-                justifySelf: 'end',
-                padding: '6px 12px',
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                background: confirmDisabled
+                  ? 'rgba(120, 120, 128, 0.16)'
+                  : 'var(--tint)',
                 border: 'none',
-                background: 'transparent',
-                color: confirmDisabled ? 'var(--label-tertiary)' : 'var(--tint)',
-                fontSize: 16,
-                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: confirmDisabled ? 'not-allowed' : 'pointer',
+                boxShadow: confirmDisabled ? 'none' : '0 3px 10px rgba(0, 122, 255, 0.35)',
+                padding: 0,
+                transition: 'background 0.15s, box-shadow 0.15s',
               }}
             >
-              {confirmLabel}
+              <Check
+                size={20}
+                strokeWidth={3}
+                color={confirmDisabled ? 'var(--label-tertiary)' : '#fff'}
+              />
             </button>
-          ) : <span />}
+          ) : <span style={{ width: 34, height: 34 }} />}
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px 20px' }}>
+          <h2 style={{
+            margin: '4px 0 16px',
+            fontSize: 22,
+            fontWeight: 700,
+            color: 'var(--label)',
+            letterSpacing: -0.2,
+            lineHeight: 1.25,
+          }}>
+            {title}
+          </h2>
           {children}
         </div>
       </div>
     </div>,
     document.body
   )
+}
+
+const circleBtn: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  background: 'rgba(255, 255, 255, 0.55)',
+  backdropFilter: 'saturate(180%) blur(14px)',
+  WebkitBackdropFilter: 'saturate(180%) blur(14px)',
+  border: '0.5px solid rgba(255, 255, 255, 0.6)',
+  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.05)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+  cursor: 'pointer',
 }

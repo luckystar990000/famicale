@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
 import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
+import AlertDialog from '../components/AlertDialog'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
 import { classify, statusAccent, gaugeFill, type EventStatus } from '../lib/event-status'
@@ -23,6 +24,7 @@ export default function EventDetailPage() {
   const [editing, setEditing] = useState<EditField>(null)
   const [draftText, setDraftText] = useState('')
   const [draftTags, setDraftTags] = useState<string[]>([])
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   if (!schedule) {
     return (
@@ -41,12 +43,10 @@ export default function EventDetailPage() {
   const cancelled = schedule.status === 'cancelled'
   const heroInfo = heroText(status, cancelled)
 
-  function handleDelete() {
+  function confirmDelete() {
     if (!schedule) return
-    if (confirm('このイベントを削除しますか？\n（履歴に残らず完全に消えます）')) {
-      remove(schedule.id)
-      navigate('/', { replace: true })
-    }
+    remove(schedule.id)
+    navigate('/', { replace: true })
   }
 
   function handleToggleCancel() {
@@ -277,7 +277,7 @@ export default function EventDetailPage() {
       </ListSection>
 
       <ListSection>
-        <ListRow onClick={handleDelete} destructive>
+        <ListRow onClick={() => setDeleteConfirmOpen(true)} destructive>
           削除する
         </ListRow>
       </ListSection>
@@ -355,6 +355,16 @@ export default function EventDetailPage() {
           />
         )}
       </Sheet>
+
+      <AlertDialog
+        open={deleteConfirmOpen}
+        title="このイベントを削除しますか？"
+        message="履歴に残らず完全に消えます。"
+        confirmLabel="削除"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </>
   )
 }
