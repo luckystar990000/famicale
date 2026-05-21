@@ -515,14 +515,21 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): 
     return { label: '', bigNumber: '中止', subtitle: '' }
   }
   const isBirthday = isBirthdayEvent(schedule)
+  const upcomingLabel = isBirthday ? '誕生日まで' : '開催まで'
   switch (status.kind) {
     case 'upcoming-soon':
-    case 'upcoming':
       return {
-        label: isBirthday ? '誕生日まで' : '開催まで',
+        label: upcomingLabel,
         bigNumber: String(status.daysUntilStart),
         unit: '日',
         subtitle: isBirthday ? 'あと少しで誕生日' : 'あと少しでスタート',
+      }
+    case 'upcoming':
+      return {
+        label: upcomingLabel,
+        bigNumber: String(status.daysUntilStart),
+        unit: '日',
+        subtitle: '',
       }
     case 'ongoing-today':
       return { label: '', bigNumber: '今日', subtitle: '' }
