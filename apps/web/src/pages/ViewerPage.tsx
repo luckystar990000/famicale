@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Check, X, Lock, Eye } from 'lucide-react'
 import type { Schedule } from '@famicale/shared'
 import {
-  classify, statusBadge, statusAccent, gaugeFill,
+  classify, statusBadge, statusAccent, gaugeFill, isRecentlyEnded,
   type EventStatus,
 } from '../lib/event-status'
 import { useSchedules } from '../state/schedules'
@@ -21,8 +21,9 @@ const TABS: { id: TabId; label: string }[] = [
 
 type Item = { schedule: Schedule; status: EventStatus }
 
-function inTab(kind: EventStatus['kind'], tab: TabId): boolean {
-  if (tab === 'all') return kind !== 'past'
+function inTab(status: EventStatus, tab: TabId): boolean {
+  const kind = status.kind
+  if (tab === 'all') return kind !== 'past' || isRecentlyEnded(status)
   if (tab === 'ongoing') return kind === 'ongoing-today' || kind === 'ongoing' || kind === 'ending-soon'
   if (tab === 'upcoming') return kind === 'upcoming-soon' || kind === 'upcoming'
   if (tab === 'ending') return kind === 'ending-soon'
@@ -47,7 +48,8 @@ function sortForTab(items: Item[], tab: TabId): Item[] {
     arr.sort((a, b) => {
       const r = statusRank(a.status.kind) - statusRank(b.status.kind)
       if (r !== 0) return r
-      return a.schedule.startDate.localeCompare(b.schedule.startDate)
+      const cmp = a.schedule.startDate.localeCompare(b.schedule.startDate)
+      return a.status.kind === 'past' ? -cmp : cmp
     })
   } else if (tab === 'ongoing' || tab === 'ending') {
     arr.sort((a, b) => {
@@ -85,12 +87,15 @@ export default function ViewerPage() {
   )
 
   const closed = useMemo(
-    () => classified.filter(i => i.schedule.status === 'cancelled' || i.status.kind === 'past'),
+    () => classified.filter(i =>
+      i.schedule.status === 'cancelled' ||
+      (i.status.kind === 'past' && !isRecentlyEnded(i.status))
+    ),
     [classified]
   )
 
   const visible = useMemo(() => {
-    const filtered = active.filter(i => inTab(i.status.kind, tab))
+    const filtered = active.filter(i => inTab(i.status, tab))
     return sortForTab(filtered, tab)
   }, [active, tab])
 
@@ -98,7 +103,7 @@ export default function ViewerPage() {
     const c: Record<TabId, number> = { all: 0, ongoing: 0, upcoming: 0, ending: 0, starting: 0 }
     for (const i of active) {
       for (const t of TABS) {
-        if (inTab(i.status.kind, t.id)) c[t.id]++
+        if (inTab(i.status, t.id)) c[t.id]++
       }
     }
     return c
@@ -269,7 +274,7 @@ function SegmentedControl({ value, onChange, counts }: {
 
 function EventCard({ schedule, status }: { schedule: Schedule; status: EventStatus }) {
   const cancelled = schedule.status === 'cancelled'
-  const badge = statusBadge(status)
+  const badge = statusBadge(status, schedule)
   const accent = cancelled
     ? '#9ca3af'
     : status.kind === 'past'

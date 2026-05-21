@@ -6,9 +6,14 @@ export type EventStatus =
   | { kind: 'ongoing-today' }
   | { kind: 'ongoing'; daysUntilEnd: number }
   | { kind: 'ending-soon'; daysUntilEnd: number }
-  | { kind: 'past' }
+  | { kind: 'past'; daysSinceEnd: number }
 
 const SOON_DAYS = 3
+export const HOME_PAST_RETENTION_DAYS = 7
+
+export function isRecentlyEnded(status: EventStatus): boolean {
+  return status.kind === 'past' && status.daysSinceEnd <= HOME_PAST_RETENTION_DAYS
+}
 
 function toDate(iso: string): Date {
   return new Date(`${iso}T00:00:00`)
@@ -28,7 +33,8 @@ export function classify(schedule: Schedule, today = new Date()): EventStatus {
   const daysUntilEnd = end ? diffDays(t, end) : null
 
   if (end ? daysUntilEnd! < 0 : daysUntilStart < 0) {
-    return { kind: 'past' }
+    const daysSinceEnd = end ? -daysUntilEnd! : -daysUntilStart
+    return { kind: 'past', daysSinceEnd }
   }
 
   if (daysUntilStart <= 0) {
@@ -43,12 +49,19 @@ export function classify(schedule: Schedule, today = new Date()): EventStatus {
   return { kind: 'upcoming', daysUntilStart }
 }
 
-export function statusBadge(status: EventStatus): { label: string; color: string; bg: string } {
+const BIRTHDAY_TAG = '誕生日'
+
+export function isBirthdayEvent(schedule: Schedule): boolean {
+  return schedule.tags?.includes(BIRTHDAY_TAG) ?? false
+}
+
+export function statusBadge(status: EventStatus, schedule: Schedule): { label: string; color: string; bg: string } {
+  const untilLabel = isBirthdayEvent(schedule) ? '誕生日まで' : '開始まで'
   switch (status.kind) {
     case 'upcoming-soon':
-      return { label: `開始まで${status.daysUntilStart}日`, color: '#1e40af', bg: '#dbeafe' }
+      return { label: `${untilLabel}${status.daysUntilStart}日`, color: '#1e40af', bg: '#dbeafe' }
     case 'upcoming':
-      return { label: `開始まで${status.daysUntilStart}日`, color: '#92400e', bg: '#fef3c7' }
+      return { label: `${untilLabel}${status.daysUntilStart}日`, color: '#92400e', bg: '#fef3c7' }
     case 'ongoing-today':
       return { label: '今日', color: '#065f46', bg: '#d1fae5' }
     case 'ongoing':
@@ -60,7 +73,11 @@ export function statusBadge(status: EventStatus): { label: string; color: string
         bg: '#fee2e2',
       }
     case 'past':
-      return { label: '終了', color: '#6b7280', bg: '#f3f4f6' }
+      return {
+        label: status.daysSinceEnd === 1 ? '昨日終了' : `${status.daysSinceEnd}日前に終了`,
+        color: '#6b7280',
+        bg: '#f3f4f6',
+      }
   }
 }
 

@@ -1,12 +1,13 @@
 import { useMemo, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
+import type { Schedule } from '@famicale/shared'
 import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
 import AlertDialog from '../components/AlertDialog'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
-import { classify, statusAccent, gaugeFill, type EventStatus } from '../lib/event-status'
+import { classify, statusAccent, gaugeFill, isBirthdayEvent, type EventStatus } from '../lib/event-status'
 
 type EditField = 'title' | 'tags' | 'notes' | null
 
@@ -42,7 +43,7 @@ export default function EventDetailPage() {
   const accent = schedule.status === 'cancelled' ? '#8e8e93' : statusAccent(status)
   const gauge = schedule.status === 'cancelled' ? null : gaugeFill(schedule, status)
   const cancelled = schedule.status === 'cancelled'
-  const heroInfo = heroText(status, cancelled)
+  const heroInfo = heroText(status, cancelled, schedule)
 
   function confirmDelete() {
     if (!schedule) return
@@ -509,7 +510,7 @@ const inlineDateInputStyle: React.CSSProperties = {
   textAlign: 'left',
 }
 
-function heroText(status: EventStatus, cancelled: boolean): {
+function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): {
   label: string
   bigNumber: string
   unit?: string
@@ -518,14 +519,15 @@ function heroText(status: EventStatus, cancelled: boolean): {
   if (cancelled) {
     return { label: '', bigNumber: '中止', subtitle: '' }
   }
+  const isBirthday = isBirthdayEvent(schedule)
   switch (status.kind) {
     case 'upcoming-soon':
     case 'upcoming':
       return {
-        label: '開催まで',
+        label: isBirthday ? '誕生日まで' : '開催まで',
         bigNumber: String(status.daysUntilStart),
         unit: '日',
-        subtitle: 'あと少しでスタート',
+        subtitle: isBirthday ? 'あと少しで誕生日' : 'あと少しでスタート',
       }
     case 'ongoing-today':
       return { label: '', bigNumber: '今日', subtitle: '' }
@@ -541,7 +543,15 @@ function heroText(status: EventStatus, cancelled: boolean): {
         subtitle: '開催中です',
       }
     case 'past':
-      return { label: '', bigNumber: '終了', subtitle: '' }
+      if (status.daysSinceEnd === 1) {
+        return { label: '', bigNumber: '昨日', subtitle: '終了' }
+      }
+      return {
+        label: '',
+        bigNumber: String(status.daysSinceEnd),
+        unit: '日前',
+        subtitle: '終了',
+      }
   }
 }
 
