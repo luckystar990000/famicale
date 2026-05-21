@@ -262,7 +262,16 @@ export default function CountdownPage() {
         ))}
 
         {showClosed && (
-          <details style={{ marginTop: 24 }}>
+          <details
+            style={{ marginTop: 24 }}
+            onToggle={e => {
+              if (e.currentTarget.open) {
+                requestAnimationFrame(() => {
+                  document.querySelector('main')?.scrollBy({ top: 100, behavior: 'smooth' })
+                })
+              }
+            }}
+          >
             <summary style={{ color: 'var(--label-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 0' }}>
               終わったイベント ({closed.length})
             </summary>
