@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
 import type { Schedule } from '@famicale/shared'
@@ -14,13 +14,8 @@ type EditField = 'title' | 'tags' | 'notes' | null
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { byId, update, remove, setStatus, items } = useSchedules()
+  const { byId, update, remove, setStatus, knownTags } = useSchedules()
   const schedule = id ? byId(id) : undefined
-
-  const knownTags = useMemo(
-    () => Array.from(new Set(items.flatMap(s => s.tags ?? []))).sort(),
-    [items]
-  )
 
   const [editing, setEditing] = useState<EditField>(null)
   const [draftText, setDraftText] = useState('')

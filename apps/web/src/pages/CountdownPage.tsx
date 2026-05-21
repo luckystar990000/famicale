@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Share2, ChevronRight, Check, X, Search } from 'lucide-react'
 import type { Schedule } from '@famicale/shared'
@@ -7,6 +7,7 @@ import {
   type EventStatus,
 } from '../lib/event-status'
 import { useSchedules } from '../state/schedules'
+import AlertDialog from '../components/AlertDialog'
 
 type TabId = 'all' | 'ongoing' | 'ending' | 'upcoming' | 'starting'
 
@@ -63,17 +64,30 @@ function sortForTab(items: Item[], tab: TabId): Item[] {
 }
 
 export default function CountdownPage() {
-  const { items } = useSchedules()
+  const { items, knownTags, deleteTag } = useSchedules()
   const navigate = useNavigate()
   const [tab, setTab] = useState<TabId>('all')
   const [query, setQuery] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedTag = searchParams.get('tag')
+  const [tagToDelete, setTagToDelete] = useState<string | null>(null)
 
-  const knownTags = useMemo(
-    () => Array.from(new Set(items.flatMap(s => s.tags ?? []))).sort(),
-    [items]
-  )
+  const usedTagSet = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of items) {
+      if (s.tags) for (const t of s.tags) set.add(t)
+    }
+    return set
+  }, [items])
+
+  const usageCount = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of items) {
+      if (!s.tags) continue
+      for (const t of s.tags) m.set(t, (m.get(t) ?? 0) + 1)
+    }
+    return m
+  }, [items])
 
   function setSelectedTag(t: string | null) {
     const next = new URLSearchParams(searchParams)
@@ -182,9 +196,31 @@ export default function CountdownPage() {
         <TagFilter
           tags={knownTags}
           selected={selectedTag}
+          usedTagSet={usedTagSet}
           onChange={setSelectedTag}
+          onLongPress={t => setTagToDelete(t)}
         />
       )}
+
+      <AlertDialog
+        open={tagToDelete !== null}
+        title={`「${tagToDelete}」 タグを削除`}
+        message={
+          tagToDelete && usageCount.get(tagToDelete)
+            ? `このタグを付けたイベントが ${usageCount.get(tagToDelete)} 件あります。 全てから外して削除します。`
+            : 'このタグを削除します。 イベントには付いていません。'
+        }
+        confirmLabel="削除"
+        destructive
+        onCancel={() => setTagToDelete(null)}
+        onConfirm={() => {
+          if (tagToDelete) {
+            deleteTag(tagToDelete)
+            if (selectedTag === tagToDelete) setSelectedTag(null)
+          }
+          setTagToDelete(null)
+        }}
+      />
 
       <div style={{ padding: '0 16px' }}>
         {visible.length === 0 && (
@@ -258,10 +294,12 @@ function emptyMessage(tab: TabId): string {
   }
 }
 
-function TagFilter({ tags, selected, onChange }: {
+function TagFilter({ tags, selected, usedTagSet, onChange, onLongPress }: {
   tags: string[]
   selected: string | null
+  usedTagSet: Set<string>
   onChange: (t: string | null) => void
+  onLongPress: (t: string) => void
 }) {
   return (
     <div style={{
@@ -272,24 +310,60 @@ function TagFilter({ tags, selected, onChange }: {
       overflowX: 'auto',
       scrollbarWidth: 'none',
     }}>
-      <TagChip label="全て" active={!selected} onClick={() => onChange(null)} />
+      <TagChip label="全て" active={!selected} used onClick={() => onChange(null)} />
       {tags.map(t => (
         <TagChip
           key={t}
           label={t}
           active={selected === t}
+          used={usedTagSet.has(t)}
           onClick={() => onChange(selected === t ? null : t)}
+          onLongPress={() => onLongPress(t)}
         />
       ))}
     </div>
   )
 }
 
-function TagChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function TagChip({ label, active, used, onClick, onLongPress }: {
+  label: string
+  active: boolean
+  used: boolean
+  onClick: () => void
+  onLongPress?: () => void
+}) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const triggered = useRef(false)
+  const startPos = useRef<{ x: number; y: number } | null>(null)
+
+  function cancel() {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+  }
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => { if (!triggered.current) onClick() }}
+      onPointerDown={onLongPress ? e => {
+        triggered.current = false
+        startPos.current = { x: e.clientX, y: e.clientY }
+        timer.current = setTimeout(() => {
+          triggered.current = true
+          onLongPress()
+        }, 600)
+      } : undefined}
+      onPointerMove={onLongPress ? e => {
+        if (!startPos.current) return
+        const dx = e.clientX - startPos.current.x
+        const dy = e.clientY - startPos.current.y
+        if (dx * dx + dy * dy > 64) cancel()
+      } : undefined}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      onPointerLeave={cancel}
       style={{
         flexShrink: 0,
         padding: '5px 12px',
@@ -304,6 +378,10 @@ function TagChip({ label, active, onClick }: { label: string; active: boolean; o
         fontWeight: active ? 600 : 500,
         cursor: 'pointer',
         whiteSpace: 'nowrap',
+        opacity: !active && !used ? 0.55 : 1,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
       }}
     >
       {label}

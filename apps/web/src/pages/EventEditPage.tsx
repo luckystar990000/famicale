@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import EventForm, { type FormValues } from '../components/EventForm'
 import NavBar from '../components/NavBar'
@@ -7,13 +7,8 @@ import { useSchedules } from '../state/schedules'
 export default function EventEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { byId, update, items } = useSchedules()
+  const { byId, update, knownTags } = useSchedules()
   const schedule = id ? byId(id) : undefined
-
-  const knownTags = useMemo(
-    () => Array.from(new Set(items.flatMap(s => s.tags ?? []))).sort(),
-    [items]
-  )
 
   const [values, setValues] = useState<FormValues>(() => ({
     title: schedule?.title ?? '',

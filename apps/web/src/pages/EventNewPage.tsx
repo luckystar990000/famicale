@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import EventForm, { type FormValues } from '../components/EventForm'
 import NavBar from '../components/NavBar'
@@ -11,11 +11,7 @@ function todayIso(): string {
 
 export default function EventNewPage() {
   const navigate = useNavigate()
-  const { create, items } = useSchedules()
-  const knownTags = useMemo(
-    () => Array.from(new Set(items.flatMap(s => s.tags ?? []))).sort(),
-    [items]
-  )
+  const { create, knownTags } = useSchedules()
   const [values, setValues] = useState<FormValues>({
     title: '', startDate: todayIso(), endDate: '', tags: [], notes: '',
   })
