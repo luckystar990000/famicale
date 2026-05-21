@@ -251,6 +251,112 @@ S1 と同時着手が綺麗。
 
 短期 S1 / S2 → 中期 M1 / M2 → 長期 L1 / L2 / L3 が素直な進行順。 ただし M1 は S1 が無くても先行できる (registry を裏で構造化するだけなら UI 影響ゼロ)。
 
+## 時間割機能の実装計画 (2026-05-21)
+
+「今日体育あるっけ？」 が買い物中に答えられないニーズが現実に出た (2026-05-21 ユーザー実需要)。 紙で配られる時間割表は famicale の OCR 入力の典型例で、 入力コストの問題は本来の領分。 schedule と独立した新エンティティとして並走させる。
+
+### 前提 / 制約
+
+- お子さん 3 人、 **小中混在** (小学校 + 中学校で時限数 / 曜日数が異なる)
+- 異なる学校 = 異なる時間割表 = それぞれ独立した timetable レコードが必要
+- 実 OCR は Cloudflare セットアップ後 (別タスク)。 まずは **モック OCR + 手動編集** で動かす
+- localStorage で持続 (schedules と同じパターン)。 D1 移行は将来
+
+### データモデル
+
+```ts
+interface Timetable {
+  id: string
+  owner: string           // タグ名と同じ慣習で 「長男」「長女」「次男」 等。 free string
+  cells: TimetableCell[]  // sparse: 埋まっているマスだけ持つ (固定サイズ配列ではない)
+  validFrom?: string      // ISO date (学期切り替え用、 optional)
+  validTo?: string
+  source: 'manual' | 'document'
+  createdAt: string
+  updatedAt: string
+}
+
+interface TimetableCell {
+  dayOfWeek: 1 | 2 | 3 | 4 | 5 | 6  // 1=月 ... 6=土 (デフォルトは 1-5)
+  period: number                     // 1, 2, 3, ...
+  subject: string                    // 「体育」「国語」 等
+}
+```
+
+- **owner = string にする理由**: 既存の対象者タグ運用 (`['長男']` 等) と同じ世界で扱える。 後述 T3 で children エンティティ化に格上げ可能。
+- **cells を sparse にする理由**: 小 5-6 時限、 中 6-7 時限の差異を schema 固定せず吸収。 描画側で `max(period)` から行数を出す。
+- **validFrom / validTo を optional にする理由**: 期間管理 UI を先送りしたい。 学期切り替えは初期は手動 (古いものを削除して新規追加)。
+
+### 着手スコープ (今回セッション目標)
+
+1. **state**: `timetables.tsx` Provider 新設 (schedules と同パターン)。 localStorage キー `famicale.timetables.v1`
+2. **モック OCR**: `mock-ocr.ts` に「サンプル時間割」 1 件追加。 アップロード経路から呼ぶ
+3. **週グリッド表示画面**: `/timetables/:id`。 曜日横、 時限縦のグリッド。 cell タップで Sheet 編集
+4. **ホーム合流**: 「今日」 ブロックを生やし、 owner 別 mini セクションで時限リスト (`長男: 国・算・体・図・理`)
+5. **ナビ**: 既存「履歴」 タブはプリント履歴 stub なので、 これを「時間割」 (or 「今日」) に置き換え
+
+### 発展計画 / 寝かせ案
+
+#### T1. 例外日 (短縮 / 行事振替) の上書き
+
+運動会 / 短縮授業 / 振替で「今日だけ違う」 が出る。 MVP では手動編集に倒す (面倒だが頻度は月 1-2 回)。 将来案:
+
+- 案 i: 特定日付に対する「上書き cell」 を別レコード `timetable_overrides(date, cells[])` に持つ
+- 案 ii: schedules 側に「時間割の代わりに表示するイベント」 という関係を持たせる (例: 運動会 schedule に「この日の時間割は無効」 フラグ)
+
+**着手トリガ**: 振替が実運用で頻繁に発生し、 手動編集が苦痛になったとき。
+
+#### T2. 持ち物との連携
+
+時間割の cell に持ち物が紐づくと「体育の日 = 体操服」 リマインダが組める。 [[project-famicale-backlog]] #1 持ち物機能とセット案件。
+
+- データモデル候補: `TimetableCell` に `items?: string[]` 持たせる (単純) / 別テーブル `cell_items` (柔軟)
+- ホーム「今日」 ブロックに「持ち物」 が並ぶと、 買い物 / 洗濯チェックの一気通貫が完成
+
+**着手トリガ**: 持ち物機能の検討着手と同期。
+
+#### T3. children エンティティ化
+
+owner: string は「自由文字列、 慣習でタグと一致させる」 設計。 将来摩擦が出たら `children(id, name, color, school)` を first-class にして、 timetable / schedule / 持ち物 が `child_id` を参照する形に格上げ。
+
+摩擦シナリオ:
+- タグリネーム (タグの S2 着手後)、 owner string が孤児化
+- 「子供別の色 / アイコン」 が欲しくなった
+- 同名兄弟の名寄せ問題
+
+**着手トリガ**: タグ機能 M1 (kind 導入) と同期、 もしくは上記摩擦の顕在化。
+
+#### T4. 学期 / 期間管理
+
+`validFrom` / `validTo` は schema にあるが UI は初期は無し。 学期跨ぎ (年 2-3 回) を実運用で扱いたくなったら、 自動切り替えロジックを追加:
+
+- 「現在有効な timetable」 = `validFrom <= today <= validTo` の最新
+- 古い timetable は「過去の時間割」 として保存だけ残す (削除しなくて済む)
+
+**着手トリガ**: 学期切り替えで「先学期のが出てる」 等の不便が出たとき。
+
+#### T5. 「イベント期間 vs 行く日」 ([[project-famicale-backlog]] #5) との関係
+
+timetable は schedule とは独立した別エンティティなので、 #5 の解決は本機能に影響しない。 切り離して進めて OK。
+
+#### T6. 実 OCR との切り替え
+
+mock-ocr.ts のサンプル時間割は、 実 OCR (Cloudflare + Claude) が繋がれば自然に置き換わる。 入出力スキーマは `{ cells: TimetableCell[], owner?: string, validFrom?: string }` を返す約束で揃えとけば差し替え自由。
+
+**着手トリガ**: Cloudflare 接続着手と同期。
+
+### 着手判断マトリクス
+
+| 項目 | コスト | 着手判断 |
+|---|---|---|
+| 着手スコープ 1-5 | 中 | 今 (このセッション) |
+| T1 例外日上書き | 中 | 振替の苦痛が顕在化したとき |
+| T2 持ち物連携 | 中-大 | 持ち物機能着手と同期 |
+| T3 children エンティティ化 | 大 | タグ M1 と同期 or 摩擦発生時 |
+| T4 学期管理 UI | 小-中 | 学期跨ぎの不便発生時 |
+| T5 (関連のみ) | — | 切り離す |
+| T6 実 OCR 接続 | 大 (別領域) | Cloudflare 接続時 |
+
 ## 開発コマンド
 
 ```bash
