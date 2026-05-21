@@ -8,7 +8,7 @@ import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
 import { classify, statusAccent, gaugeFill, type EventStatus } from '../lib/event-status'
 
-type EditField = 'title' | 'startDate' | 'endDate' | 'tags' | 'notes' | null
+type EditField = 'title' | 'tags' | 'notes' | null
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,6 +25,7 @@ export default function EventDetailPage() {
   const [draftText, setDraftText] = useState('')
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [endDateClearConfirmOpen, setEndDateClearConfirmOpen] = useState(false)
 
   if (!schedule) {
     return (
@@ -62,8 +63,6 @@ export default function EventDetailPage() {
     } else {
       const initial =
         field === 'title' ? schedule.title :
-        field === 'startDate' ? schedule.startDate :
-        field === 'endDate' ? (schedule.endDate ?? '') :
         field === 'notes' ? (schedule.notes ?? '') :
         ''
       setDraftText(initial)
@@ -75,12 +74,6 @@ export default function EventDetailPage() {
     switch (editing) {
       case 'title':
         if (draftText.trim()) update(schedule.id, { title: draftText })
-        break
-      case 'startDate':
-        if (draftText) update(schedule.id, { startDate: draftText })
-        break
-      case 'endDate':
-        update(schedule.id, { endDate: draftText || undefined })
         break
       case 'notes':
         update(schedule.id, { notes: draftText || undefined })
@@ -94,19 +87,14 @@ export default function EventDetailPage() {
 
   const sheetTitle =
     editing === 'title' ? 'イベント名' :
-    editing === 'startDate' ? '開始日' :
-    editing === 'endDate' ? '終了日' :
     editing === 'tags' ? 'タグ' :
     editing === 'notes' ? 'メモ' : ''
 
-  const confirmDisabled =
-    (editing === 'title' && draftText.trim() === '') ||
-    (editing === 'startDate' && !draftText) ||
-    (editing === 'endDate' && draftText !== '' && schedule.startDate && draftText < schedule.startDate)
+  const confirmDisabled = editing === 'title' && draftText.trim() === ''
 
   return (
     <>
-      <NavBar back={{ to: '/' }} />
+      <NavBar title={schedule.title} back={{ to: '/' }} />
 
       <div style={{ padding: '8px 20px 28px' }}>
         <button
@@ -138,19 +126,18 @@ export default function EventDetailPage() {
           </h1>
         </button>
 
-        {heroInfo.label && (
-          <div style={{
-            marginTop: 14,
-            fontSize: 13,
-            fontWeight: 600,
-            color: accent,
-            textTransform: 'uppercase',
-            letterSpacing: 0.4,
-          }}>
-            {heroInfo.label}
-          </div>
-        )}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: heroInfo.label ? 4 : 14 }}>
+        <div style={{
+          marginTop: 14,
+          fontSize: 13,
+          fontWeight: 600,
+          color: accent,
+          textTransform: 'uppercase',
+          letterSpacing: 0.4,
+          minHeight: 16,
+        }}>
+          {heroInfo.label || ' '}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
           <span style={{
             fontSize: heroInfo.bigNumber.length > 2 ? 42 : 64,
             fontWeight: 700,
@@ -173,26 +160,25 @@ export default function EventDetailPage() {
           )}
         </div>
 
-        {heroInfo.subtitle && (
-          <div style={{
-            marginTop: 6,
-            fontSize: 15,
-            color: 'var(--label-secondary)',
-            lineHeight: 1.4,
-          }}>
-            {heroInfo.subtitle}
-          </div>
-        )}
+        <div style={{
+          marginTop: 6,
+          fontSize: 15,
+          color: 'var(--label-secondary)',
+          lineHeight: 1.4,
+          minHeight: 21,
+        }}>
+          {heroInfo.subtitle || ' '}
+        </div>
 
-        {gauge && (
-          <div style={{
-            marginTop: 16,
-            height: 6,
-            background: 'rgba(0,0,0,0.06)',
-            borderRadius: 3,
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
+        <div style={{
+          marginTop: 16,
+          height: 6,
+          background: 'rgba(0,0,0,0.06)',
+          borderRadius: 3,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {gauge && (
             <div style={{
               position: 'absolute',
               [gauge.fillFrom]: 0,
@@ -200,23 +186,74 @@ export default function EventDetailPage() {
               width: `${gauge.fill * 100}%`, background: accent,
               transition: 'width 0.3s ease',
             }} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <ListSection header="日付">
-        <ListRow
-          label="開始日"
-          value={formatLongDate(schedule.startDate)}
-          onClick={() => openEdit('startDate')}
-        />
-        <ListRow
-          label="終了日"
-          value={schedule.endDate
-            ? formatLongDate(schedule.endDate)
-            : <span style={{ color: 'var(--label-tertiary)' }}>未設定</span>}
-          onClick={() => openEdit('endDate')}
-        />
+      <ListSection header="日付" footer="複数日にまたがるイベントのみ終了日を入力 (空欄なら単日)">
+        <ListRow label="開始日">
+          <input
+            key={`start-${schedule.startDate}`}
+            type="date"
+            defaultValue={schedule.startDate}
+            onBlur={e => {
+              const v = e.target.value
+              if (v && v !== schedule.startDate) {
+                update(schedule.id, { startDate: v })
+              }
+            }}
+            style={inlineDateInputStyle}
+          />
+        </ListRow>
+        <ListRow label="終了日">
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+            <input
+              key={`end-${schedule.endDate ?? 'none'}`}
+              type="date"
+              defaultValue={schedule.endDate ?? ''}
+              onBlur={e => {
+                const v = e.target.value
+                if (v !== (schedule.endDate ?? '')) {
+                  update(schedule.id, { endDate: v || undefined })
+                }
+              }}
+              min={schedule.startDate}
+              style={{
+                ...inlineDateInputStyle,
+                color: schedule.endDate ? 'var(--label)' : 'var(--label-tertiary)',
+                paddingRight: schedule.endDate ? 32 : 0,
+              }}
+            />
+            {schedule.endDate && (
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setEndDateClearConfirmOpen(true)
+                }}
+                aria-label="終了日をクリア"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'rgba(120, 120, 128, 0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                <X size={14} strokeWidth={3} color="#fff" />
+              </button>
+            )}
+          </div>
+        </ListRow>
       </ListSection>
 
       <ListSection header="タグ">
@@ -271,7 +308,7 @@ export default function EventDetailPage() {
           onClick={handleToggleCancel}
         >
           <span style={{ color: 'var(--tint)' }}>
-            {cancelled ? '予定を再開する' : 'このイベントを中止する'}
+            {cancelled ? 'このイベントを再開する' : '中止する'}
           </span>
         </ListRow>
       </ListSection>
@@ -299,44 +336,6 @@ export default function EventDetailPage() {
             style={sheetInputStyle}
           />
         )}
-        {editing === 'startDate' && (
-          <input
-            type="date"
-            value={draftText}
-            onChange={e => setDraftText(e.target.value)}
-            style={sheetInputStyle}
-          />
-        )}
-        {editing === 'endDate' && (
-          <>
-            <input
-              type="date"
-              value={draftText}
-              onChange={e => setDraftText(e.target.value)}
-              min={schedule.startDate}
-              style={sheetInputStyle}
-            />
-            {draftText && (
-              <button
-                type="button"
-                onClick={() => setDraftText('')}
-                style={{
-                  marginTop: 12,
-                  width: '100%',
-                  padding: '10px 0',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--destructive)',
-                  fontSize: 15,
-                  cursor: 'pointer',
-                }}
-              >終了日を未設定にする</button>
-            )}
-            <p style={{ marginTop: 12, fontSize: 13, color: 'var(--label-secondary)', lineHeight: 1.4 }}>
-              複数日にまたがるイベントのみ終了日を入力 (空欄なら単日)
-            </p>
-          </>
-        )}
         {editing === 'tags' && (
           <TagInputInSheet
             value={draftTags}
@@ -359,11 +358,24 @@ export default function EventDetailPage() {
       <AlertDialog
         open={deleteConfirmOpen}
         title="このイベントを削除しますか？"
-        message="履歴に残らず完全に消えます。"
+        message="履歴に残らず完全に消え、元に戻せません。"
         confirmLabel="削除"
         destructive
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirmOpen(false)}
+      />
+
+      <AlertDialog
+        open={endDateClearConfirmOpen}
+        title="終了日をクリアしますか？"
+        message="単日イベントになります。"
+        confirmLabel="クリア"
+        destructive
+        onConfirm={() => {
+          update(schedule.id, { endDate: undefined })
+          setEndDateClearConfirmOpen(false)
+        }}
+        onCancel={() => setEndDateClearConfirmOpen(false)}
       />
     </>
   )
@@ -483,6 +495,20 @@ const sheetInputStyle: React.CSSProperties = {
   appearance: 'none',
 }
 
+const inlineDateInputStyle: React.CSSProperties = {
+  width: '100%',
+  minWidth: 0,
+  border: 'none',
+  background: 'transparent',
+  fontSize: 17,
+  padding: 0,
+  outline: 'none',
+  fontFamily: 'inherit',
+  color: 'var(--label)',
+  lineHeight: 1.3,
+  textAlign: 'left',
+}
+
 function heroText(status: EventStatus, cancelled: boolean): {
   label: string
   bigNumber: string
@@ -519,8 +545,3 @@ function heroText(status: EventStatus, cancelled: boolean): {
   }
 }
 
-function formatLongDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('ja-JP', {
-    year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
-  })
-}

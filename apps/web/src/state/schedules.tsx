@@ -3,6 +3,15 @@ import type { Schedule } from '@famicale/shared'
 
 const STORAGE_KEY = 'famicale.schedules.v1'
 
+function uuid(): string {
+  // crypto.randomUUID() は secure context (HTTPS / localhost) でしか動かない
+  // LAN IP 経由の HTTP アクセスでは例外になるのでフォールバックを用意
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID() } catch { /* fall through */ }
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 function shift(offset: number): string {
   const d = new Date()
   d.setDate(d.getDate() + offset)
@@ -93,7 +102,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
   const create = useCallback((input: ScheduleInput): Schedule => {
     const now = new Date().toISOString()
     const schedule: Schedule = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       source: 'manual',
       status: 'active',
       title: input.title.trim(),
@@ -111,7 +120,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
   const bulkCreate = useCallback((inputs: ScheduleInput[], source: 'manual' | 'document' = 'document'): Schedule[] => {
     const now = new Date().toISOString()
     const created: Schedule[] = inputs.map(input => ({
-      id: crypto.randomUUID(),
+      id: uuid(),
       source,
       status: 'active',
       title: input.title.trim(),

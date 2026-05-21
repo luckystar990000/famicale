@@ -393,14 +393,12 @@ function SegmentedControl({ value, onChange, counts }: {
               padding: '6px 11px',
               border: 'none',
               borderRadius: 27,
-              background: active ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
-              color: 'var(--label)',
+              background: active ? 'var(--tint)' : 'transparent',
+              color: active ? '#fff' : 'var(--label)',
               fontWeight: active ? 600 : 500,
               fontSize: 13,
               cursor: 'pointer',
-              boxShadow: active
-                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 3px rgba(0, 0, 0, 0.08)'
-                : 'none',
+              boxShadow: active ? '0 1px 4px rgba(0, 122, 255, 0.25)' : 'none',
               transition: 'background 0.15s',
               whiteSpace: 'nowrap',
               display: 'inline-flex',
@@ -412,7 +410,7 @@ function SegmentedControl({ value, onChange, counts }: {
             {counts[id] > 0 && (
               <span style={{
                 fontSize: 11, fontWeight: 500,
-                color: 'var(--label-secondary)',
+                color: active ? 'rgba(255, 255, 255, 0.85)' : 'var(--label-secondary)',
                 fontVariantNumeric: 'tabular-nums',
               }}>{counts[id]}</span>
             )}
