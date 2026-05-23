@@ -111,6 +111,7 @@ interface SchedulesAPI {
   update: (id: string, input: Partial<ScheduleInput>) => void
   remove: (id: string) => void
   setStatus: (id: string, status: 'active' | 'cancelled') => void
+  postpone: (id: string, newStartDate: string) => void
   reset: () => void
   knownTags: string[]
   deleteTag: (name: string) => void
@@ -215,6 +216,28 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       : s))
   }, [])
 
+  const postpone = useCallback((id: string, newStartDate: string) => {
+    setItems(prev => prev.map(s => {
+      if (s.id !== id) return s
+      let newEndDate = s.endDate
+      if (s.endDate) {
+        const oldStart = new Date(`${s.startDate}T00:00:00`)
+        const oldEnd = new Date(`${s.endDate}T00:00:00`)
+        const newStart = new Date(`${newStartDate}T00:00:00`)
+        const deltaMs = oldEnd.getTime() - oldStart.getTime()
+        const newEnd = new Date(newStart.getTime() + deltaMs)
+        newEndDate = `${newEnd.getFullYear()}-${String(newEnd.getMonth() + 1).padStart(2, '0')}-${String(newEnd.getDate()).padStart(2, '0')}`
+      }
+      return {
+        ...s,
+        postponedFrom: s.startDate,
+        startDate: newStartDate,
+        endDate: newEndDate,
+        updatedAt: new Date().toISOString(),
+      }
+    }))
+  }, [])
+
   const byId = useCallback((id: string) => items.find(s => s.id === id), [items])
 
   const reset = useCallback(() => {
@@ -240,7 +263,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
   }, [items, tagRegistry])
 
   return (
-    <Ctx.Provider value={{ items, byId, create, bulkCreate, update, remove, setStatus, reset, knownTags, deleteTag }}>
+    <Ctx.Provider value={{ items, byId, create, bulkCreate, update, remove, setStatus, postpone, reset, knownTags, deleteTag }}>
       {children}
     </Ctx.Provider>
   )

@@ -321,6 +321,11 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
             {schedule.title}
           </div>
           <div style={{ fontSize: 13, color: 'var(--label-secondary)' }}>{dateText}</div>
+          {schedule.postponedFrom && (
+            <div style={{ fontSize: 12, color: 'var(--label-tertiary)', marginTop: 2 }}>
+              {formatMD(schedule.postponedFrom)} から延期
+            </div>
+          )}
           {schedule.notes && (
             <div style={{
               fontSize: 13,

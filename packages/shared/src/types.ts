@@ -21,6 +21,7 @@ export interface Schedule {
   title: string
   startDate: string
   endDate?: string
+  postponedFrom?: string
   category?: string
   tags?: string[]
   notes?: string

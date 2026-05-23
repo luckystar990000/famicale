@@ -14,7 +14,7 @@ type EditField = 'title' | 'tags' | 'notes' | null
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { byId, update, remove, setStatus, knownTags } = useSchedules()
+  const { byId, update, remove, setStatus, postpone, knownTags } = useSchedules()
   const schedule = id ? byId(id) : undefined
 
   const [editing, setEditing] = useState<EditField>(null)
@@ -22,6 +22,8 @@ export default function EventDetailPage() {
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [endDateClearConfirmOpen, setEndDateClearConfirmOpen] = useState(false)
+  const [postponeOpen, setPostponeOpen] = useState(false)
+  const [draftPostponeDate, setDraftPostponeDate] = useState('')
 
   if (!schedule) {
     return (
@@ -49,6 +51,22 @@ export default function EventDetailPage() {
   function handleToggleCancel() {
     if (!schedule) return
     setStatus(schedule.id, cancelled ? 'active' : 'cancelled')
+  }
+
+  function openPostpone() {
+    if (!schedule) return
+    setDraftPostponeDate(addDays(schedule.startDate, 7))
+    setPostponeOpen(true)
+  }
+
+  function commitPostpone() {
+    if (!schedule || !draftPostponeDate) return
+    if (draftPostponeDate === schedule.startDate) {
+      setPostponeOpen(false)
+      return
+    }
+    postpone(schedule.id, draftPostponeDate)
+    setPostponeOpen(false)
   }
 
   function openEdit(field: Exclude<EditField, null>) {
@@ -255,6 +273,13 @@ export default function EventDetailPage() {
             </span>
           </ListRow>
         )}
+        {schedule.postponedFrom && (
+          <ListRow label="元の予定">
+            <span style={{ color: 'var(--label-secondary)' }}>
+              {formatPostponedFrom(schedule.postponedFrom)} から延期
+            </span>
+          </ListRow>
+        )}
       </ListSection>
 
       <ListSection header="タグ">
@@ -302,6 +327,14 @@ export default function EventDetailPage() {
           )}
         </ListRow>
       </ListSection>
+
+      {!cancelled && (
+        <ListSection>
+          <ListRow onClick={openPostpone}>
+            <span style={{ color: 'var(--tint)' }}>延期する</span>
+          </ListRow>
+        </ListSection>
+      )}
 
       <ListSection>
         <ListRow
@@ -378,6 +411,52 @@ export default function EventDetailPage() {
         }}
         onCancel={() => setEndDateClearConfirmOpen(false)}
       />
+
+      <Sheet
+        open={postponeOpen}
+        onClose={() => setPostponeOpen(false)}
+        title="延期"
+        onConfirm={commitPostpone}
+        confirmDisabled={!draftPostponeDate || draftPostponeDate === schedule.startDate}
+      >
+        <ListSection>
+          <ListRow label="新しい日付">
+            <input
+              type="date"
+              value={draftPostponeDate}
+              onChange={e => setDraftPostponeDate(e.target.value)}
+              min={schedule.startDate}
+              style={inlineDateInputStyle}
+            />
+          </ListRow>
+        </ListSection>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 4px', marginTop: 4 }}>
+          {[
+            { label: '+1日', days: 1 },
+            { label: '+1週間', days: 7 },
+            { label: '+2週間', days: 14 },
+          ].map(({ label, days }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setDraftPostponeDate(addDays(schedule.startDate, days))}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 999,
+                border: '0.5px solid var(--glass-border)',
+                background: 'rgba(255, 255, 255, 0.55)',
+                color: 'var(--label)',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Sheet>
     </>
   )
 }
@@ -560,5 +639,17 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): 
         subtitle: '終了',
       }
   }
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00`)
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatPostponedFrom(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('ja-JP', {
+    month: 'numeric', day: 'numeric', weekday: 'short',
+  })
 }
 
