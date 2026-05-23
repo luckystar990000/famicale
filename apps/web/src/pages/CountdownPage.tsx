@@ -7,7 +7,9 @@ import {
   type EventStatus,
 } from '../lib/event-status'
 import { useSchedules } from '../state/schedules'
+import { useTimetables } from '../state/timetables'
 import AlertDialog from '../components/AlertDialog'
+import type { DayOfWeek, Timetable } from '@famicale/shared'
 
 type TabId = 'all' | 'ongoing' | 'ending' | 'upcoming' | 'starting'
 
@@ -183,6 +185,8 @@ export default function CountdownPage() {
           <Share2 size={22} strokeWidth={2.2} color="var(--label)" />
         </button>
       </div>
+
+      <TodayTimetables />
 
       <div style={{ padding: '0 16px 16px' }}>
         <SearchBar value={query} onChange={setQuery} />
@@ -395,6 +399,79 @@ function TagChip({ label, active, used, onClick, onLongPress }: {
     >
       {label}
     </button>
+  )
+}
+
+function TodayTimetables() {
+  const { items: timetables } = useTimetables()
+  const today = new Date()
+  const jsDay = today.getDay()
+  const dow = (jsDay === 0 ? null : jsDay) as DayOfWeek | null
+
+  if (dow === null) return null
+
+  const owned = timetables
+    .map(t => ({ tt: t, cells: t.cells.filter(c => c.dayOfWeek === dow).sort((a, b) => a.period - b.period) }))
+    .filter(x => x.cells.length > 0)
+
+  if (owned.length === 0) return null
+
+  return (
+    <div style={{ padding: '0 16px 16px' }}>
+      <div style={{
+        background: 'var(--bg-card)',
+        backdropFilter: 'saturate(160%) blur(22px)',
+        WebkitBackdropFilter: 'saturate(160%) blur(22px)',
+        border: '0.5px solid var(--glass-border)',
+        boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 22px rgba(0, 0, 0, 0.05)',
+        borderRadius: 27,
+        padding: '14px 16px',
+      }}>
+        <div style={{
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'var(--label-secondary)',
+          marginBottom: 10,
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 6,
+        }}>
+          今日の時間割
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {owned.map(({ tt, cells }) => (
+            <TodayRow key={tt.id} tt={tt} subjects={cells.map(c => c.subject)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TodayRow({ tt, subjects }: { tt: Timetable; subjects: string[] }) {
+  return (
+    <Link
+      to={`/timetables/${tt.id}`}
+      style={{
+        display: 'flex', alignItems: 'baseline', gap: 8,
+        textDecoration: 'none', color: 'inherit',
+      }}
+    >
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--label)', flexShrink: 0 }}>
+        {tt.owner}
+      </span>
+      <span style={{
+        fontSize: 14,
+        color: 'var(--label-secondary)',
+        flex: 1,
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}>
+        {subjects.join(' · ')}
+      </span>
+    </Link>
   )
 }
 

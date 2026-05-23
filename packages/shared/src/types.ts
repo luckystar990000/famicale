@@ -34,3 +34,29 @@ export interface ExtractedSchedule {
   endDate?: string
   category?: string
 }
+
+export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6  // 1=月 ... 6=土
+
+export interface TimetableCell {
+  dayOfWeek: DayOfWeek
+  period: number
+  subject: string
+}
+
+export interface Timetable {
+  id: string
+  owner: string
+  cells: TimetableCell[]
+  validFrom?: string
+  validTo?: string
+  source: ScheduleSource
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ExtractedTimetable {
+  owner?: string
+  cells: TimetableCell[]
+  validFrom?: string
+  validTo?: string
+}

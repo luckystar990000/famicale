@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, Route, Routes, useLocation, useNavigationType } from 'react-router-dom'
-import { House, Plus, Camera, List, type LucideIcon } from 'lucide-react'
+import { House, Plus, Camera, CalendarDays, type LucideIcon } from 'lucide-react'
 
 const scrollPositions = new Map<string, number>()
 
@@ -26,7 +26,8 @@ import EventNewPage from './pages/EventNewPage'
 import EventDetailPage from './pages/EventDetailPage'
 import EventEditPage from './pages/EventEditPage'
 import UploadPage from './pages/UploadPage'
-import HistoryPage from './pages/HistoryPage'
+import TimetablesPage from './pages/TimetablesPage'
+import TimetablePage from './pages/TimetablePage'
 import SharePage from './pages/SharePage'
 import ViewerPage from './pages/ViewerPage'
 
@@ -34,7 +35,7 @@ const NAV_ITEMS: { to: string; label: string; Icon: LucideIcon; end: boolean }[]
   { to: '/', label: 'ホーム', Icon: House, end: true },
   { to: '/events/new', label: '追加', Icon: Plus, end: false },
   { to: '/upload', label: '撮影', Icon: Camera, end: false },
-  { to: '/history', label: '履歴', Icon: List, end: false },
+  { to: '/timetables', label: '時間割', Icon: CalendarDays, end: false },
 ]
 
 export default function App() {
@@ -70,7 +71,8 @@ export default function App() {
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route path="/events/:id/edit" element={<EventEditPage />} />
           <Route path="/upload" element={<UploadPage />} />
-          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/timetables" element={<TimetablesPage />} />
+          <Route path="/timetables/:id" element={<TimetablePage />} />
           <Route path="/share" element={<SharePage />} />
           <Route path="/v/:token" element={<ViewerPage />} />
         </Routes>
