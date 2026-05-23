@@ -61,6 +61,12 @@ export default function TimetablePage() {
     setEditing(null)
   }
 
+  function clearCurrentCell() {
+    if (!editing || !id) return
+    clearCell(id, editing.dayOfWeek, editing.period)
+    setEditing(null)
+  }
+
   function openOwnerEdit() {
     setDraftOwner(tt?.owner ?? '')
     setOwnerEditing(true)
@@ -191,7 +197,7 @@ export default function TimetablePage() {
         title={editing ? `${DAY_LABELS[editing.dayOfWeek]}曜 ${editing.period}限` : ''}
         onConfirm={commitCell}
       >
-        <ListSection footer="空にして保存すると、 このマスはクリアされます">
+        <ListSection>
           <ListRow>
             <input
               type="text"
@@ -212,6 +218,17 @@ export default function TimetablePage() {
             />
           </ListRow>
         </ListSection>
+
+        {editing?.current && (
+          <ListSection>
+            <ListRow onClick={clearCurrentCell} destructive>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Trash2 size={18} strokeWidth={2.2} color="var(--destructive)" />
+                <span>クリア</span>
+              </div>
+            </ListRow>
+          </ListSection>
+        )}
       </Sheet>
 
       <Sheet
