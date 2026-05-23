@@ -186,7 +186,7 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      <ListSection header="日付" footer="複数日にまたがるイベントのみ終了日を入力 (空欄なら単日)">
+      <ListSection header="日付">
         <ListRow label="開始日">
           <input
             key={`start-${schedule.startDate}`}
@@ -201,26 +201,25 @@ export default function EventDetailPage() {
             style={inlineDateInputStyle}
           />
         </ListRow>
-        <ListRow label="終了日">
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-            <input
-              key={`end-${schedule.endDate ?? 'none'}`}
-              type="date"
-              defaultValue={schedule.endDate ?? ''}
-              onBlur={e => {
-                const v = e.target.value
-                if (v !== (schedule.endDate ?? '')) {
-                  update(schedule.id, { endDate: v || undefined })
-                }
-              }}
-              min={schedule.startDate}
-              style={{
-                ...inlineDateInputStyle,
-                color: schedule.endDate ? 'var(--label)' : 'var(--label-tertiary)',
-                paddingRight: schedule.endDate ? 32 : 0,
-              }}
-            />
-            {schedule.endDate && (
+        {schedule.endDate ? (
+          <ListRow label="終了日">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input
+                key={`end-${schedule.endDate}`}
+                type="date"
+                defaultValue={schedule.endDate}
+                onBlur={e => {
+                  const v = e.target.value
+                  if (v !== schedule.endDate) {
+                    update(schedule.id, { endDate: v || undefined })
+                  }
+                }}
+                min={schedule.startDate}
+                style={{
+                  ...inlineDateInputStyle,
+                  paddingRight: 32,
+                }}
+              />
               <button
                 type="button"
                 onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
@@ -247,9 +246,15 @@ export default function EventDetailPage() {
               >
                 <X size={14} strokeWidth={3} color="#fff" />
               </button>
-            )}
-          </div>
-        </ListRow>
+            </div>
+          </ListRow>
+        ) : (
+          <ListRow onClick={() => update(schedule.id, { endDate: schedule.startDate })}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + 終了日を追加
+            </span>
+          </ListRow>
+        )}
       </ListSection>
 
       <ListSection header="タグ">

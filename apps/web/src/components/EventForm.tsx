@@ -34,7 +34,7 @@ export default function EventForm({ values, onChange, knownTags }: Props) {
         </ListRow>
       </ListSection>
 
-      <ListSection footer={endDateInvalid ? '終了日は開始日以降にしてください' : '複数日にまたがるイベントのみ終了日を入力 (空欄なら単日)'}>
+      <ListSection footer={endDateInvalid ? '終了日は開始日以降にしてください' : undefined}>
         <ListRow label="開始日">
           <input
             type="date"
@@ -43,21 +43,19 @@ export default function EventForm({ values, onChange, knownTags }: Props) {
             style={inlineDateInputStyle}
           />
         </ListRow>
-        <ListRow label="終了日">
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-            <input
-              type="date"
-              value={values.endDate}
-              onChange={e => onChange({ endDate: e.target.value })}
-              min={values.startDate || undefined}
-              placeholder="未指定"
-              style={{
-                ...inlineDateInputStyle,
-                color: values.endDate ? 'var(--label)' : 'var(--label-tertiary)',
-                paddingRight: values.endDate ? 32 : 0,
-              }}
-            />
-            {values.endDate && (
+        {values.endDate !== '' ? (
+          <ListRow label="終了日">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input
+                type="date"
+                value={values.endDate}
+                onChange={e => onChange({ endDate: e.target.value })}
+                min={values.startDate || undefined}
+                style={{
+                  ...inlineDateInputStyle,
+                  paddingRight: 32,
+                }}
+              />
               <button
                 type="button"
                 onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
@@ -84,9 +82,15 @@ export default function EventForm({ values, onChange, knownTags }: Props) {
               >
                 <X size={14} strokeWidth={3} color="#fff" />
               </button>
-            )}
-          </div>
-        </ListRow>
+            </div>
+          </ListRow>
+        ) : (
+          <ListRow onClick={() => onChange({ endDate: values.startDate })}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + 終了日を追加
+            </span>
+          </ListRow>
+        )}
       </ListSection>
 
       <ListSection header="タグ" footer="例: 家族 / 長男 / 長女 / 次男 など、誰の予定か入れると後で絞り込めます">
