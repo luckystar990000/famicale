@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import EventForm, { type FormValues } from '../components/EventForm'
 import NavBar from '../components/NavBar'
+import AlertDialog from '../components/AlertDialog'
 import { useSchedules } from '../state/schedules'
 
 function todayIso(): string {
@@ -15,14 +16,24 @@ export default function EventNewPage() {
   const [values, setValues] = useState<FormValues>({
     title: '', startDate: todayIso(), endDate: '', tags: [], notes: '',
   })
-
-  const endDateInvalid = values.endDate !== '' && values.endDate < values.startDate
-  const canSubmit = values.title.trim() !== '' && values.startDate !== '' && !endDateInvalid
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   function handleSubmit() {
-    if (!canSubmit) return
+    const title = values.title.trim()
+    if (title === '') {
+      setErrorMessage('イベント名を入力してください')
+      return
+    }
+    if (values.startDate === '') {
+      setErrorMessage('開始日を選んでください')
+      return
+    }
+    if (values.endDate !== '' && values.endDate < values.startDate) {
+      setErrorMessage('終了日は開始日以降にしてください')
+      return
+    }
     create({
-      title: values.title.trim(),
+      title,
       startDate: values.startDate,
       endDate: values.endDate || undefined,
       tags: values.tags,
@@ -36,7 +47,7 @@ export default function EventNewPage() {
       <NavBar
         title="新規イベント"
         back={{ icon: 'close', label: 'キャンセル', to: '/' }}
-        rightAction={{ icon: 'check', label: '追加', primary: true, disabled: !canSubmit, onClick: handleSubmit }}
+        rightAction={{ icon: 'check', label: '追加', primary: true, onClick: handleSubmit }}
       />
       <div style={{ paddingTop: 16 }}>
         <EventForm
@@ -44,19 +55,17 @@ export default function EventNewPage() {
           onChange={patch => setValues(v => ({ ...v, ...patch }))}
           knownTags={knownTags}
         />
-        {!canSubmit && (
-          <div style={{
-            padding: '8px 20px 0',
-            fontSize: 13,
-            color: 'var(--label-secondary)',
-            textAlign: 'center',
-          }}>
-            {values.title.trim() === ''
-              ? 'イベント名を入力すると「追加」が押せます'
-              : '入力内容を確認してください'}
-          </div>
-        )}
       </div>
+
+      <AlertDialog
+        open={errorMessage !== null}
+        title="保存できません"
+        message={errorMessage ?? ''}
+        confirmLabel="OK"
+        hideCancel
+        onCancel={() => setErrorMessage(null)}
+        onConfirm={() => setErrorMessage(null)}
+      />
     </>
   )
 }

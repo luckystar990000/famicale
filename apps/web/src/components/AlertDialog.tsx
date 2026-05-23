@@ -8,6 +8,7 @@ interface Props {
   confirmLabel: string
   cancelLabel?: string
   destructive?: boolean
+  hideCancel?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -19,6 +20,7 @@ export default function AlertDialog({
   confirmLabel,
   cancelLabel = 'キャンセル',
   destructive,
+  hideCancel,
   onConfirm,
   onCancel,
 }: Props) {
@@ -104,18 +106,20 @@ export default function AlertDialog({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: hideCancel ? '1fr' : '1fr 1fr',
             gap: 10,
           }}
         >
-          <button
-            type="button"
-            onClick={onCancel}
-            className="press-feedback"
-            style={pillButtonStyle({ bold: false, color: 'var(--label)' })}
-          >
-            {cancelLabel}
-          </button>
+          {!hideCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="press-feedback"
+              style={pillButtonStyle({ bold: false, color: 'var(--label)' })}
+            >
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={onConfirm}

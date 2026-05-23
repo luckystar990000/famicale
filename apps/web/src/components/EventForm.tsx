@@ -18,6 +18,7 @@ interface Props {
 
 export default function EventForm({ values, onChange, knownTags }: Props) {
   const endDateInvalid = values.endDate !== '' && values.endDate < values.startDate
+  const [tagSectionOpen, setTagSectionOpen] = useState(values.tags.length > 0)
 
   return (
     <>
@@ -93,15 +94,25 @@ export default function EventForm({ values, onChange, knownTags }: Props) {
         )}
       </ListSection>
 
-      <ListSection header="タグ" footer="例: 家族 / 長男 / 長女 / 次男 など、誰の予定か入れると後で絞り込めます">
-        <ListRow align="vertical">
-          <TagInput
-            value={values.tags}
-            onChange={tags => onChange({ tags })}
-            knownTags={knownTags}
-          />
-        </ListRow>
-      </ListSection>
+      {tagSectionOpen ? (
+        <ListSection header="タグ">
+          <ListRow align="vertical">
+            <TagInput
+              value={values.tags}
+              onChange={tags => onChange({ tags })}
+              knownTags={knownTags}
+            />
+          </ListRow>
+        </ListSection>
+      ) : (
+        <ListSection>
+          <ListRow onClick={() => setTagSectionOpen(true)}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + タグを追加
+            </span>
+          </ListRow>
+        </ListSection>
+      )}
 
       <ListSection>
         <ListRow align="vertical">
