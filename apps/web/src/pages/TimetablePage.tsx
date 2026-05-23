@@ -170,11 +170,8 @@ export default function TimetablePage() {
               }}
             >
               <Sparkles size={18} strokeWidth={2.2} color="var(--tint)" />
-              {loadingSample ? '読み込み中…' : 'サンプルから入れる (モック)'}
+              {loadingSample ? '読み込み中…' : 'サンプル時間割を入れる'}
             </button>
-            <p style={{ marginTop: 8, fontSize: 13, color: 'var(--label-secondary)', textAlign: 'center' }}>
-              実機の OCR は Cloudflare 接続後。 今はサンプルで動作確認できます。
-            </p>
           </div>
         )}
 

@@ -60,7 +60,7 @@ export default function TimetablesPage() {
                         {t.owner}
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
-                        {cellCount === 0 ? '空 (タップで入力)' : `${cellCount} マス入力済み`}
+                        {cellCount} マス
                       </div>
                     </div>
                     <ChevronRight size={18} strokeWidth={2.2} color="var(--label-tertiary)" />
@@ -79,10 +79,7 @@ export default function TimetablesPage() {
         onConfirm={handleCreate}
         confirmDisabled={draftOwner.trim() === ''}
       >
-        <ListSection
-          header="誰の時間割か"
-          footer="タグ名と同じ慣習で入力 (例: 長男 / 長女 / 次男)"
-        >
+        <ListSection header="誰の時間割か">
           <ListRow>
             <input
               type="text"
