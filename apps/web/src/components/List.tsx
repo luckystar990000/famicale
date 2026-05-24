@@ -53,11 +53,12 @@ interface RowProps {
   onClick?: () => void
   trailing?: ReactNode
   destructive?: boolean
+  disabled?: boolean
   align?: 'horizontal' | 'vertical'
 }
 
-export function ListRow({ label, value, children, onClick, trailing, destructive, align = 'horizontal' }: RowProps) {
-  const interactive = !!onClick
+export function ListRow({ label, value, children, onClick, trailing, destructive, disabled, align = 'horizontal' }: RowProps) {
+  const interactive = !!onClick && !disabled
   const baseStyle: CSSProperties = {
     minHeight: 54,
     padding: '14px 20px',
@@ -76,6 +77,8 @@ export function ListRow({ label, value, children, onClick, trailing, destructive
     border: 0,
     borderRadius: 0,
     overflow: 'hidden',
+    opacity: disabled ? 0.4 : 1,
+    transition: 'opacity 180ms ease',
   }
 
   const inner = (
@@ -113,12 +116,13 @@ export function ListRow({ label, value, children, onClick, trailing, destructive
     </>
   )
 
-  if (interactive) {
+  if (onClick) {
     return (
       <button
         type="button"
         onClick={onClick}
-        className="press-feedback"
+        disabled={disabled}
+        className={disabled ? undefined : 'press-feedback'}
         style={baseStyle}
       >
         {inner}

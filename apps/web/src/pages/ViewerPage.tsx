@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Check, X, Lock, Eye } from 'lucide-react'
+import { Lock, Eye } from 'lucide-react'
 import type { Schedule } from '@famicale/shared'
 import {
   classify, statusBadge, statusAccent, gaugeFill, isRecentlyEnded,
+  effectiveStart, effectiveEnd, cardHeaderBg,
   type EventStatus,
 } from '../lib/event-status'
 import { useSchedules } from '../state/schedules'
@@ -48,17 +49,17 @@ function sortForTab(items: Item[], tab: TabId): Item[] {
     arr.sort((a, b) => {
       const r = statusRank(a.status.kind) - statusRank(b.status.kind)
       if (r !== 0) return r
-      const cmp = a.schedule.startDate.localeCompare(b.schedule.startDate)
+      const cmp = effectiveStart(a.schedule).localeCompare(effectiveStart(b.schedule))
       return a.status.kind === 'past' ? -cmp : cmp
     })
   } else if (tab === 'ongoing' || tab === 'ending') {
     arr.sort((a, b) => {
-      const ae = a.schedule.endDate ?? a.schedule.startDate
-      const be = b.schedule.endDate ?? b.schedule.startDate
+      const ae = effectiveEnd(a.schedule) ?? effectiveStart(a.schedule)
+      const be = effectiveEnd(b.schedule) ?? effectiveStart(b.schedule)
       return ae.localeCompare(be)
     })
   } else if (tab === 'upcoming' || tab === 'starting') {
-    arr.sort((a, b) => a.schedule.startDate.localeCompare(b.schedule.startDate))
+    arr.sort((a, b) => effectiveStart(a.schedule).localeCompare(effectiveStart(b.schedule)))
   }
   return arr
 }
@@ -308,52 +309,25 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
         opacity: cancelled ? 0.55 : 1,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
-        <StatusDot status={status} cancelled={cancelled} accent={accent} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 16, fontWeight: 600, color: 'var(--label)', marginBottom: 2,
-            textDecoration: cancelled ? 'line-through' : 'none',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {schedule.title}
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--label-secondary)' }}>{dateText}</div>
-          {schedule.postponedFrom && (
-            <div style={{ fontSize: 12, color: 'var(--label-tertiary)', marginTop: 2 }}>
-              {formatMD(schedule.postponedFrom)} から延期
-            </div>
-          )}
-          {schedule.notes && (
-            <div style={{
-              fontSize: 13,
-              color: 'var(--label-secondary)',
-              marginTop: 4,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              whiteSpace: 'pre-wrap',
-            }}>
-              {schedule.notes}
-            </div>
-          )}
-          {schedule.tags && schedule.tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-              {schedule.tags.map(t => (
-                <span key={t} style={{
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: 'rgba(0, 122, 255, 0.12)',
-                  color: 'var(--tint)',
-                  fontSize: 11,
-                  fontWeight: 500,
-                }}>{t}</span>
-              ))}
-            </div>
-          )}
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: '12px 16px',
+        background: cardHeaderBg(status, cancelled),
+        borderBottom: '0.5px solid var(--separator)',
+      }}>
+        <div style={{
+          flex: 1, minWidth: 0,
+          fontSize: 16, fontWeight: 600, color: 'var(--label)',
+          textDecoration: cancelled ? 'line-through' : 'none',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          lineHeight: 1.3,
+        }}>
+          {schedule.title}
         </div>
         <div
           className={isSoon ? 'badge-pulse' : undefined}
@@ -368,6 +342,44 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
           {cancelled ? '中止' : badge.label}
         </div>
       </div>
+
+      {/* Body */}
+      <div style={{ padding: '10px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {schedule.visitDate && <VisitPill />}
+          <div style={{ fontSize: 13, color: 'var(--label-secondary)' }}>{dateText}</div>
+        </div>
+        {schedule.notes && (
+          <div style={{
+            fontSize: 13,
+            color: 'var(--label-secondary)',
+            marginTop: 6,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            whiteSpace: 'pre-wrap',
+          }}>
+            {schedule.notes}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      {schedule.tags && schedule.tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 16px 12px' }}>
+          {schedule.tags.map(t => (
+            <span key={t} style={{
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'rgba(0, 122, 255, 0.12)',
+              color: 'var(--tint)',
+              fontSize: 11,
+              fontWeight: 500,
+            }}>{t}</span>
+          ))}
+        </div>
+      )}
 
       {gauge && (
         <div
@@ -391,29 +403,20 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
   )
 }
 
-function StatusDot({ status, cancelled, accent }: { status: EventStatus; cancelled: boolean; accent: string }): ReactNode {
-  const filled = !cancelled && (
-    status.kind === 'ongoing-today' ||
-    status.kind === 'ongoing' ||
-    status.kind === 'ending-soon'
-  )
-  const ringColor = cancelled ? '#9ca3af' : accent
-  const showCheck = !cancelled && status.kind === 'past'
-  const showCross = cancelled
-  const solid = filled || showCheck || showCross
-
+function VisitPill() {
   return (
-    <div style={{
-      width: 24, height: 24,
+    <span style={{
+      padding: '1px 8px',
       borderRadius: 999,
-      border: `2px solid ${ringColor}`,
-      background: solid ? ringColor : 'transparent',
+      background: 'rgba(175, 82, 222, 0.14)',
+      color: '#af52de',
+      fontSize: 11,
+      fontWeight: 700,
       flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      lineHeight: 1.5,
     }}>
-      {showCheck && <Check size={14} strokeWidth={3.5} color="#fff" />}
-      {showCross && <X size={14} strokeWidth={3.5} color="#fff" />}
-    </div>
+      行く日
+    </span>
   )
 }
 
@@ -422,6 +425,7 @@ function formatDateLabel(schedule: Schedule, status: EventStatus): string {
     if (!schedule.endDate || schedule.endDate === schedule.startDate) return formatMD(schedule.startDate)
     return `${formatMD(schedule.startDate)} 〜 ${formatMD(schedule.endDate)}`
   }
+  if (schedule.visitDate) return formatMD(schedule.visitDate)
   if (status.kind === 'upcoming-soon') return `${formatMD(schedule.startDate)} 開催`
   if (status.kind === 'ending-soon' && schedule.endDate) return `${formatMD(schedule.endDate)} 終了`
   if (!schedule.endDate || schedule.endDate === schedule.startDate) {

@@ -24,10 +24,19 @@ function diffDays(from: Date, to: Date): number {
   return Math.floor(ms / 86400000)
 }
 
+export function effectiveStart(schedule: Schedule): string {
+  return schedule.visitDate ?? schedule.startDate
+}
+
+export function effectiveEnd(schedule: Schedule): string | undefined {
+  return schedule.visitDate ? undefined : schedule.endDate
+}
+
 export function classify(schedule: Schedule, today = new Date()): EventStatus {
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const start = toDate(schedule.startDate)
-  const end = schedule.endDate ? toDate(schedule.endDate) : null
+  const start = toDate(effectiveStart(schedule))
+  const effEnd = effectiveEnd(schedule)
+  const end = effEnd ? toDate(effEnd) : null
 
   const daysUntilStart = diffDays(t, start)
   const daysUntilEnd = end ? diffDays(t, end) : null
@@ -56,7 +65,9 @@ export function isBirthdayEvent(schedule: Schedule): boolean {
 }
 
 export function statusBadge(status: EventStatus, schedule: Schedule): { label: string; color: string; bg: string } {
-  const untilLabel = isBirthdayEvent(schedule) ? '誕生日まで' : '開始まで'
+  const untilLabel = schedule.visitDate
+    ? '行くまで'
+    : isBirthdayEvent(schedule) ? '誕生日まで' : '開始まで'
   switch (status.kind) {
     case 'upcoming-soon':
       return { label: `${untilLabel}${status.daysUntilStart}日`, color: '#1e40af', bg: '#dbeafe' }
@@ -92,9 +103,25 @@ export function statusAccent(status: EventStatus): string {
   }
 }
 
+export function cardHeaderBg(status: EventStatus, cancelled: boolean): string {
+  if (cancelled) return 'rgba(156, 163, 175, 0.06)'
+  switch (status.kind) {
+    case 'ongoing-today':
+    case 'ongoing':
+    case 'ending-soon':
+      return 'rgba(16, 185, 129, 0.06)'
+    case 'upcoming-soon':
+    case 'upcoming':
+      return 'rgba(245, 158, 11, 0.06)'
+    case 'past':
+      return 'rgba(156, 163, 175, 0.06)'
+  }
+}
+
 export function sortKey(schedule: Schedule, status: EventStatus): [number, number] {
-  if (status.kind === 'past') return [2, -toDate(schedule.startDate).getTime()]
-  return [0, toDate(schedule.startDate).getTime()]
+  const eff = toDate(effectiveStart(schedule)).getTime()
+  if (status.kind === 'past') return [2, -eff]
+  return [0, eff]
 }
 
 const GAUGE_WINDOW_DAYS = 30
@@ -109,8 +136,9 @@ export function gaugeFill(schedule: Schedule, status: EventStatus, today = new D
   if (status.kind === 'ongoing-today') return { fill: 1, fillFrom: 'left' }
 
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const start = toDate(schedule.startDate)
-  const end = schedule.endDate ? toDate(schedule.endDate) : null
+  const start = toDate(effectiveStart(schedule))
+  const effEnd = effectiveEnd(schedule)
+  const end = effEnd ? toDate(effEnd) : null
 
   if ((status.kind === 'ongoing' || status.kind === 'ending-soon') && end) {
     const total = diffDays(start, end) + 1

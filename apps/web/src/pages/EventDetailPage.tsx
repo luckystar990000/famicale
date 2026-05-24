@@ -5,6 +5,7 @@ import type { Schedule } from '@famicale/shared'
 import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
 import AlertDialog from '../components/AlertDialog'
+import Toast from '../components/Toast'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
 import { classify, statusAccent, gaugeFill, isBirthdayEvent, type EventStatus } from '../lib/event-status'
@@ -14,7 +15,7 @@ type EditField = 'title' | 'tags' | 'notes' | null
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { byId, update, remove, setStatus, postpone, knownTags } = useSchedules()
+  const { byId, update, remove, setStatus, postpone, shiftEventPeriod, knownTags } = useSchedules()
   const schedule = id ? byId(id) : undefined
 
   const [editing, setEditing] = useState<EditField>(null)
@@ -24,6 +25,9 @@ export default function EventDetailPage() {
   const [endDateClearConfirmOpen, setEndDateClearConfirmOpen] = useState(false)
   const [postponeOpen, setPostponeOpen] = useState(false)
   const [draftPostponeDate, setDraftPostponeDate] = useState('')
+  const [eventPeriodOpen, setEventPeriodOpen] = useState(false)
+  const [draftEventPeriodDate, setDraftEventPeriodDate] = useState('')
+  const [toast, setToast] = useState<{ message: string; action?: { label: string; onClick: () => void } } | null>(null)
 
   if (!schedule) {
     return (
@@ -48,25 +52,68 @@ export default function EventDetailPage() {
     navigate('/', { replace: true })
   }
 
+  function handleStopVisit() {
+    if (!schedule || toast !== null) return
+    const targetId = schedule.id
+    const prevVisitDate = schedule.visitDate
+    const prevPostponedFrom = schedule.postponedFrom
+    if (!prevVisitDate) return
+    update(targetId, { visitDate: undefined, postponedFrom: undefined })
+    setToast({
+      message: '行くのをやめました',
+      action: {
+        label: '取り消す',
+        onClick: () => update(targetId, { visitDate: prevVisitDate, postponedFrom: prevPostponedFrom }),
+      },
+    })
+  }
+
   function handleToggleCancel() {
-    if (!schedule) return
-    setStatus(schedule.id, cancelled ? 'active' : 'cancelled')
+    if (!schedule || toast !== null) return
+    const wasCancelled = cancelled
+    const targetId = schedule.id
+    setStatus(targetId, wasCancelled ? 'active' : 'cancelled')
+    setToast({
+      message: wasCancelled ? '再開しました' : '中止しました',
+      action: {
+        label: '取り消す',
+        onClick: () => setStatus(targetId, wasCancelled ? 'cancelled' : 'active'),
+      },
+    })
   }
 
   function openPostpone() {
     if (!schedule) return
-    setDraftPostponeDate(addDays(schedule.startDate, 7))
+    setDraftPostponeDate(addDays(schedule.visitDate ?? schedule.startDate, 7))
     setPostponeOpen(true)
   }
 
+
   function commitPostpone() {
     if (!schedule || !draftPostponeDate) return
-    if (draftPostponeDate === schedule.startDate) {
+    const currentDate = schedule.visitDate ?? schedule.startDate
+    if (draftPostponeDate === currentDate) {
       setPostponeOpen(false)
       return
     }
     postpone(schedule.id, draftPostponeDate)
     setPostponeOpen(false)
+  }
+
+  function openEventPeriod() {
+    if (!schedule) return
+    setDraftEventPeriodDate(addDays(schedule.startDate, 7))
+    setEventPeriodOpen(true)
+  }
+
+  function commitEventPeriod() {
+    if (!schedule || !draftEventPeriodDate) return
+    if (draftEventPeriodDate === schedule.startDate) {
+      setEventPeriodOpen(false)
+      return
+    }
+    shiftEventPeriod(schedule.id, draftEventPeriodDate)
+    setEventPeriodOpen(false)
   }
 
   function openEdit(field: Exclude<EditField, null>) {
@@ -247,20 +294,7 @@ export default function EventDetailPage() {
                   setEndDateClearConfirmOpen(true)
                 }}
                 aria-label="終了日をクリア"
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: 'rgba(120, 120, 128, 0.45)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
+                style={clearButtonStyle}
               >
                 <X size={14} strokeWidth={3} color="#fff" />
               </button>
@@ -273,10 +307,52 @@ export default function EventDetailPage() {
             </span>
           </ListRow>
         )}
+        {schedule.visitDate ? (
+          <ListRow label="行く日">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input
+                key={`visit-${schedule.visitDate}`}
+                type="date"
+                defaultValue={schedule.visitDate}
+                onBlur={e => {
+                  const v = e.target.value
+                  if (v !== schedule.visitDate) {
+                    update(schedule.id, { visitDate: v || undefined })
+                  }
+                }}
+                min={schedule.startDate}
+                max={schedule.endDate}
+                style={{
+                  ...inlineDateInputStyle,
+                  paddingRight: 32,
+                }}
+              />
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  update(schedule.id, { visitDate: undefined })
+                }}
+                aria-label="行く日をクリア"
+                style={clearButtonStyle}
+              >
+                <X size={14} strokeWidth={3} color="#fff" />
+              </button>
+            </div>
+          </ListRow>
+        ) : (
+          <ListRow onClick={() => update(schedule.id, { visitDate: schedule.startDate })}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + 行く日を設定
+            </span>
+          </ListRow>
+        )}
         {schedule.postponedFrom && (
           <ListRow label="元の予定">
             <span style={{ color: 'var(--label-secondary)' }}>
-              {formatPostponedFrom(schedule.postponedFrom)} から延期
+              {formatShortDate(schedule.postponedFrom)} から延期
             </span>
           </ListRow>
         )}
@@ -328,10 +404,33 @@ export default function EventDetailPage() {
         </ListRow>
       </ListSection>
 
-      {!cancelled && (
+      <ListSection header="予定の編集">
+        <ListRow
+          onClick={openPostpone}
+          disabled={cancelled || toast !== null}
+        >
+          <span style={{ color: 'var(--tint)' }}>{schedule.visitDate ? '行く日をズラす' : 'イベントの日程をズラす'}</span>
+        </ListRow>
+      </ListSection>
+
+      {schedule.visitDate && !cancelled && (
         <ListSection>
-          <ListRow onClick={openPostpone}>
-            <span style={{ color: 'var(--tint)' }}>延期する</span>
+          <ListRow
+            onClick={openEventPeriod}
+            disabled={toast !== null}
+          >
+            <span style={{ color: 'var(--tint)' }}>イベントの日程をズラす</span>
+          </ListRow>
+        </ListSection>
+      )}
+
+      {schedule.visitDate && !cancelled && (
+        <ListSection>
+          <ListRow
+            onClick={handleStopVisit}
+            disabled={toast !== null}
+          >
+            <span style={{ color: 'var(--tint)' }}>行くのをやめる</span>
           </ListRow>
         </ListSection>
       )}
@@ -340,16 +439,19 @@ export default function EventDetailPage() {
         <ListRow
           key={cancelled ? 'reactivate' : 'cancel'}
           onClick={handleToggleCancel}
+          disabled={toast !== null}
         >
           <span style={{ color: 'var(--tint)' }}>
-            {cancelled ? 'このイベントを再開する' : '中止する'}
+            {cancelled
+              ? 'このイベントを再開する'
+              : schedule.visitDate ? 'イベント自体を中止する' : 'イベントを中止する'}
           </span>
         </ListRow>
       </ListSection>
 
       <ListSection>
         <ListRow onClick={() => setDeleteConfirmOpen(true)} destructive>
-          削除する
+          イベントを削除する
         </ListRow>
       </ListSection>
 
@@ -399,6 +501,14 @@ export default function EventDetailPage() {
         onCancel={() => setDeleteConfirmOpen(false)}
       />
 
+      <Toast
+        open={toast !== null}
+        message={toast?.message ?? ''}
+        durationMs={3000}
+        action={toast?.action}
+        onClose={() => setToast(null)}
+      />
+
       <AlertDialog
         open={endDateClearConfirmOpen}
         title="終了日をクリアしますか？"
@@ -415,9 +525,9 @@ export default function EventDetailPage() {
       <Sheet
         open={postponeOpen}
         onClose={() => setPostponeOpen(false)}
-        title="延期"
+        title={schedule.visitDate ? '行く日をズラす' : 'イベントの日程をズラす'}
         onConfirm={commitPostpone}
-        confirmDisabled={!draftPostponeDate || draftPostponeDate === schedule.startDate}
+        confirmDisabled={!draftPostponeDate || draftPostponeDate === (schedule.visitDate ?? schedule.startDate)}
       >
         <ListSection>
           <ListRow label="新しい日付">
@@ -440,7 +550,52 @@ export default function EventDetailPage() {
             <button
               key={label}
               type="button"
-              onClick={() => setDraftPostponeDate(addDays(schedule.startDate, days))}
+              onClick={() => setDraftPostponeDate(addDays(schedule.visitDate ?? schedule.startDate, days))}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 999,
+                border: '0.5px solid var(--glass-border)',
+                background: 'rgba(255, 255, 255, 0.55)',
+                color: 'var(--label)',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={eventPeriodOpen}
+        onClose={() => setEventPeriodOpen(false)}
+        title="イベントの日程をズラす"
+        onConfirm={commitEventPeriod}
+        confirmDisabled={!draftEventPeriodDate || draftEventPeriodDate === schedule.startDate}
+      >
+        <ListSection>
+          <ListRow label="新しい開始日">
+            <input
+              type="date"
+              value={draftEventPeriodDate}
+              onChange={e => setDraftEventPeriodDate(e.target.value)}
+              style={inlineDateInputStyle}
+            />
+          </ListRow>
+        </ListSection>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 4px', marginTop: 4 }}>
+          {[
+            { label: '+1日', days: 1 },
+            { label: '+1週間', days: 7 },
+            { label: '+2週間', days: 14 },
+          ].map(({ label, days }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setDraftEventPeriodDate(addDays(schedule.startDate, days))}
               style={{
                 padding: '5px 12px',
                 borderRadius: 999,
@@ -575,6 +730,21 @@ const sheetInputStyle: React.CSSProperties = {
   appearance: 'none',
 }
 
+const clearButtonStyle: React.CSSProperties = {
+  position: 'absolute',
+  right: 0,
+  width: 24,
+  height: 24,
+  borderRadius: '50%',
+  border: 'none',
+  background: 'rgba(120, 120, 128, 0.45)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  padding: 0,
+}
+
 const inlineDateInputStyle: React.CSSProperties = {
   width: '100%',
   minWidth: 0,
@@ -598,15 +768,16 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): 
   if (cancelled) {
     return { label: '', bigNumber: '中止', subtitle: '' }
   }
-  const isBirthday = isBirthdayEvent(schedule)
-  const upcomingLabel = isBirthday ? '誕生日まで' : '開催まで'
+  const hasVisit = !!schedule.visitDate
+  const isBirthday = !hasVisit && isBirthdayEvent(schedule)
+  const upcomingLabel = hasVisit ? '行くまで' : isBirthday ? '誕生日まで' : '開催まで'
   switch (status.kind) {
     case 'upcoming-soon':
       return {
         label: upcomingLabel,
         bigNumber: String(status.daysUntilStart),
         unit: '日',
-        subtitle: isBirthday ? 'あと少しで誕生日' : 'あと少しでスタート',
+        subtitle: hasVisit ? '' : isBirthday ? 'あと少しで誕生日' : 'あと少しでスタート',
       }
     case 'upcoming':
       return {
@@ -616,7 +787,7 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): 
         subtitle: '',
       }
     case 'ongoing-today':
-      return { label: '', bigNumber: '今日', subtitle: '' }
+      return { label: '', bigNumber: '今日', subtitle: hasVisit ? '行く日です' : '' }
     case 'ongoing':
     case 'ending-soon':
       if (status.daysUntilEnd === 0) {
@@ -647,7 +818,7 @@ function addDays(iso: string, days: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function formatPostponedFrom(iso: string): string {
+function formatShortDate(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('ja-JP', {
     month: 'numeric', day: 'numeric', weekday: 'short',
   })

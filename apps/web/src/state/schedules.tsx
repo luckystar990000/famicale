@@ -88,8 +88,10 @@ export interface ScheduleInput {
   title: string
   startDate: string
   endDate?: string
+  visitDate?: string
   tags?: string[]
   notes?: string
+  postponedFrom?: string
 }
 
 function normalizeTags(tags?: string[]): string[] | undefined {
@@ -112,6 +114,7 @@ interface SchedulesAPI {
   remove: (id: string) => void
   setStatus: (id: string, status: 'active' | 'cancelled') => void
   postpone: (id: string, newStartDate: string) => void
+  shiftEventPeriod: (id: string, newStartDate: string) => void
   reset: () => void
   knownTags: string[]
   deleteTag: (name: string) => void
@@ -200,8 +203,10 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       title: input.title?.trim() ?? s.title,
       startDate: input.startDate ?? s.startDate,
       endDate: 'endDate' in input ? (input.endDate?.trim() || undefined) : s.endDate,
+      visitDate: 'visitDate' in input ? (input.visitDate?.trim() || undefined) : s.visitDate,
       tags: 'tags' in input ? normalizeTags(input.tags) : s.tags,
       notes: 'notes' in input ? (input.notes?.trim() || undefined) : s.notes,
+      postponedFrom: 'postponedFrom' in input ? input.postponedFrom : s.postponedFrom,
       updatedAt: new Date().toISOString(),
     } : s))
   }, [registerTags])
@@ -216,7 +221,37 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       : s))
   }, [])
 
-  const postpone = useCallback((id: string, newStartDate: string) => {
+  const postpone = useCallback((id: string, newDate: string) => {
+    setItems(prev => prev.map(s => {
+      if (s.id !== id) return s
+      if (s.visitDate) {
+        return {
+          ...s,
+          postponedFrom: s.postponedFrom ?? s.visitDate,
+          visitDate: newDate,
+          updatedAt: new Date().toISOString(),
+        }
+      }
+      let newEndDate = s.endDate
+      if (s.endDate) {
+        const oldStart = new Date(`${s.startDate}T00:00:00`)
+        const oldEnd = new Date(`${s.endDate}T00:00:00`)
+        const newStart = new Date(`${newDate}T00:00:00`)
+        const deltaMs = oldEnd.getTime() - oldStart.getTime()
+        const newEnd = new Date(newStart.getTime() + deltaMs)
+        newEndDate = `${newEnd.getFullYear()}-${String(newEnd.getMonth() + 1).padStart(2, '0')}-${String(newEnd.getDate()).padStart(2, '0')}`
+      }
+      return {
+        ...s,
+        postponedFrom: s.postponedFrom ?? s.startDate,
+        startDate: newDate,
+        endDate: newEndDate,
+        updatedAt: new Date().toISOString(),
+      }
+    }))
+  }, [])
+
+  const shiftEventPeriod = useCallback((id: string, newStartDate: string) => {
     setItems(prev => prev.map(s => {
       if (s.id !== id) return s
       let newEndDate = s.endDate
@@ -230,7 +265,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       }
       return {
         ...s,
-        postponedFrom: s.startDate,
+        postponedFrom: s.postponedFrom ?? s.startDate,
         startDate: newStartDate,
         endDate: newEndDate,
         updatedAt: new Date().toISOString(),
@@ -263,7 +298,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
   }, [items, tagRegistry])
 
   return (
-    <Ctx.Provider value={{ items, byId, create, bulkCreate, update, remove, setStatus, postpone, reset, knownTags, deleteTag }}>
+    <Ctx.Provider value={{ items, byId, create, bulkCreate, update, remove, setStatus, postpone, shiftEventPeriod, reset, knownTags, deleteTag }}>
       {children}
     </Ctx.Provider>
   )
