@@ -294,6 +294,9 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
   const isOngoing = status.kind === 'ongoing' || status.kind === 'ending-soon' || status.kind === 'ongoing-today'
   const dateText = formatDateLabel(schedule, status)
   const isSoon = !cancelled && (status.kind === 'upcoming-soon' || status.kind === 'ending-soon')
+  const isPast = !cancelled && status.kind === 'past'
+  const titleColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
+  const subTextColor = isPast ? 'var(--label-tertiary)' : 'var(--label-secondary)'
 
   return (
     <div
@@ -316,11 +319,10 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
         gap: 8,
         padding: '12px 16px',
         background: cardHeaderBg(status, cancelled),
-        borderBottom: '0.5px solid var(--separator)',
       }}>
         <div style={{
           flex: 1, minWidth: 0,
-          fontSize: 16, fontWeight: 600, color: 'var(--label)',
+          fontSize: 16, fontWeight: 600, color: titleColor,
           textDecoration: cancelled ? 'line-through' : 'none',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -343,16 +345,37 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
         </div>
       </div>
 
+      {gauge ? (
+        <div
+          role="progressbar"
+          aria-label={isOngoing ? '残り期間' : '開始まで'}
+          aria-valuenow={Math.round(gauge.fill * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          style={{ height: 4, background: 'rgba(0,0,0,0.05)', position: 'relative' }}
+        >
+          <div style={{
+            position: 'absolute',
+            [gauge.fillFrom]: 0,
+            top: 0, bottom: 0,
+            width: `${gauge.fill * 100}%`, background: accent,
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+      ) : (
+        <div style={{ height: 4, background: 'rgba(0,0,0,0.05)' }} aria-hidden />
+      )}
+
       {/* Body */}
       <div style={{ padding: '10px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {schedule.visitDate && <VisitPill />}
-          <div style={{ fontSize: 13, color: 'var(--label-secondary)' }}>{dateText}</div>
+          <div style={{ fontSize: 13, color: subTextColor }}>{dateText}</div>
         </div>
         {schedule.notes && (
           <div style={{
             fontSize: 13,
-            color: 'var(--label-secondary)',
+            color: subTextColor,
             marginTop: 6,
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -378,25 +401,6 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
               fontWeight: 500,
             }}>{t}</span>
           ))}
-        </div>
-      )}
-
-      {gauge && (
-        <div
-          role="progressbar"
-          aria-label={isOngoing ? '残り期間' : '開始まで'}
-          aria-valuenow={Math.round(gauge.fill * 100)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          style={{ height: 4, background: 'rgba(0,0,0,0.05)', position: 'relative' }}
-        >
-          <div style={{
-            position: 'absolute',
-            [gauge.fillFrom]: 0,
-            top: 0, bottom: 0,
-            width: `${gauge.fill * 100}%`, background: accent,
-            transition: 'width 0.3s ease',
-          }} />
         </div>
       )}
     </div>

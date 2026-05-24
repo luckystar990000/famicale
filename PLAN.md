@@ -20,7 +20,8 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 
 直近で実装済み (commit ハッシュ付き、 新しい順):
 
-- (this commit) **visitDate (行く日) + EventCard 再構築 + 詳細アクション整理 + Toast** (詳細は下記):
+- (this commit) **EventCard 仕上げ**: gauge を Header と Body の間に移動 (カード末尾の角丸 R に重なる違和感解消)、 past は文字色 1 段薄く、 gauge null (past/cancelled) もトラックバーだけ出して境界統一
+- `fa378e7` **visitDate (行く日) + EventCard 再構築 + 詳細アクション整理 + Toast**:
   - `Schedule.visitDate` 追加 (backlog #5 案 A)、 期間イベントに「自分が行く日」 1 個を持てる。 visitDate set 時の countdown / sort / 延期は visitDate 基準。 兄弟複数日対応は案 B として保留
   - ホーム EventCard を **Header / Body / Footer + Gauge** に再構築。 StatusDot / chevron / 会期補足 / postponedFrom 表示はカードから廃止 (詳細画面のみ)。 Header に状態色 alpha 0.06 オーバーレイで弱グルーピング
   - 詳細画面のアクションを再構成: 「ズラす」「イベントの日程をズラす」 (visitDate set 時)「行くのをやめる」「中止 / 削除」 を主語付きに、 小見出し「予定の編集」 で情報セクションと区切る
