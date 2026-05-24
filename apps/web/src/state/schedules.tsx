@@ -87,7 +87,9 @@ function saveTagRegistry(tags: string[]) {
 export interface ScheduleInput {
   title: string
   startDate: string
+  startTime?: string
   endDate?: string
+  endTime?: string
   visitDate?: string
   tags?: string[]
   notes?: string
@@ -202,7 +204,9 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       ...s,
       title: input.title?.trim() ?? s.title,
       startDate: input.startDate ?? s.startDate,
+      startTime: 'startTime' in input ? (input.startTime?.trim() || undefined) : s.startTime,
       endDate: 'endDate' in input ? (input.endDate?.trim() || undefined) : s.endDate,
+      endTime: 'endTime' in input ? (input.endTime?.trim() || undefined) : s.endTime,
       visitDate: 'visitDate' in input ? (input.visitDate?.trim() || undefined) : s.visitDate,
       tags: 'tags' in input ? normalizeTags(input.tags) : s.tags,
       notes: 'notes' in input ? (input.notes?.trim() || undefined) : s.notes,

@@ -342,6 +342,8 @@ iOS 26 設定アプリ風の中央アラート (リキッドグラス)。 破壊
 
 **「行く日」 行** (`schedule.visitDate`): 「日付」 ListSection 内、 終了日の下に置く。 未設定: 「+ 行く日を設定」 アフォーダンス。 設定済: date input + 右端の × ボタンでクリア (AlertDialog 確認なし、 即時)。 min は `max(today, startDate)`。 用途は「展覧会等の期間イベントに対して自分 (家族) が行く日 1 件を持つ」。 兄弟が別日に行く稀ケースはタグ + 2 件登録で凌ぐ ([[project-famicale-backlog]] #5 案 A)。
 
+**「時刻」 ListSection** (`schedule.startTime` / `schedule.endTime`): 「日付」 ListSection の **直下** に独立した別ブロックとして配置 (「日付」 と混ぜない、 あくまで **付随データ**)。 行は「開始時刻」 「終了時刻」 の 2 つ、 個別に optional。 未設定時は「+ ○○時刻を追加」 アフォーダンス、 設定済は time input + × クリア (日付行と同じパターン)。 初期値は開始 `10:00` / 終了 `17:00`。 カードの日付ラインに `(10:00〜17:00)` 形式で `--label-tertiary` で後置表示。 片方のみは `(10:00〜)` / `(〜17:00)`。
+
 **visitDate が終了日より後のとき** (`isVisitOutOfRange`): 設定時は AlertDialog で「終了日より後ですが設定しますか?」 と確認、 OK で設定。 設定後はカード全体で警告状態を視覚化:
 - カード root の border を `1.5px solid rgba(255, 59, 48, 0.6)` の赤枠に強化
 - Header 背景を destructive 系赤 (`rgba(255, 59, 48, 0.08)`)、 Body / Footer 背景も `rgba(255, 59, 48, 0.04)` の薄赤に

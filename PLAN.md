@@ -20,7 +20,12 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 
 直近で実装済み (commit ハッシュ付き、 新しい順):
 
-- (this commit) **visitOutOfRange の警告状態 (赤系トーン)**:
+- (this commit) **イベントに時刻 (開始 / 終了) を任意追加**:
+  - `schedule.startTime` / `schedule.endTime` を optional フィールド追加
+  - 詳細画面に「時刻」 ListSection を新設 (「日付」 ListSection の直下、 付随データとして別ブロック分け)
+  - 各時刻は個別 optional、 「+ ○○時刻を追加」 アフォーダンス + 設定済は time input + × クリア
+  - カード日付ラインに `(10:00〜17:00)` 形式で薄い灰色 (`--label-tertiary`) で後置
+- `2c45450` **visitOutOfRange の警告状態 (赤系トーン)**:
   - visitDate 設定時に終了日後の日付を入れたら AlertDialog で確認、 OK で設定
   - 設定後の赤系トーン: カード root 1.5px 赤枠 / Header 赤 / Body / Footer 薄赤 bg / visit pill 紫 → 赤 / gauge 赤 / 詳細ヒーローも赤
   - visit pill の「あと N 日」 を「終了後」 に置換、 ヒーロー大数字も「終了後」 + subtitle「行く日が終了日を過ぎています」

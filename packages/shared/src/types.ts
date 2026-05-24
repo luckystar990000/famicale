@@ -20,7 +20,9 @@ export interface Schedule {
   status: ScheduleStatus
   title: string
   startDate: string
+  startTime?: string
   endDate?: string
+  endTime?: string
   visitDate?: string
   postponedFrom?: string
   category?: string

@@ -388,6 +388,83 @@ export default function EventDetailPage() {
         )}
       </ListSection>
 
+      <ListSection header="時刻">
+        {schedule.startTime ? (
+          <ListRow label="開始時刻">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input
+                key={`stime-${schedule.startTime}`}
+                type="time"
+                defaultValue={schedule.startTime}
+                onBlur={e => {
+                  const v = e.target.value
+                  if (v !== schedule.startTime) {
+                    update(schedule.id, { startTime: v || undefined })
+                  }
+                }}
+                style={{ ...inlineDateInputStyle, paddingRight: 32 }}
+              />
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  update(schedule.id, { startTime: undefined })
+                }}
+                aria-label="開始時刻をクリア"
+                style={clearButtonStyle}
+              >
+                <X size={14} strokeWidth={3} color="#fff" />
+              </button>
+            </div>
+          </ListRow>
+        ) : (
+          <ListRow onClick={() => update(schedule.id, { startTime: '10:00' })}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + 開始時刻を追加
+            </span>
+          </ListRow>
+        )}
+        {schedule.endTime ? (
+          <ListRow label="終了時刻">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input
+                key={`etime-${schedule.endTime}`}
+                type="time"
+                defaultValue={schedule.endTime}
+                onBlur={e => {
+                  const v = e.target.value
+                  if (v !== schedule.endTime) {
+                    update(schedule.id, { endTime: v || undefined })
+                  }
+                }}
+                style={{ ...inlineDateInputStyle, paddingRight: 32 }}
+              />
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  update(schedule.id, { endTime: undefined })
+                }}
+                aria-label="終了時刻をクリア"
+                style={clearButtonStyle}
+              >
+                <X size={14} strokeWidth={3} color="#fff" />
+              </button>
+            </div>
+          </ListRow>
+        ) : (
+          <ListRow onClick={() => update(schedule.id, { endTime: '17:00' })}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + 終了時刻を追加
+            </span>
+          </ListRow>
+        )}
+      </ListSection>
+
       <ListSection header="タグ">
         <ListRow
           align="vertical"

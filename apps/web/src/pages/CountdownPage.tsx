@@ -740,6 +740,11 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
               ? `${formatMD(schedule.startDate)} 〜 ${formatMD(schedule.endDate)}`
               : formatMD(schedule.startDate))
             : dateText}
+          {formatTimeRange(schedule.startTime, schedule.endTime) && (
+            <span style={{ color: 'var(--label-tertiary)', marginLeft: 6, fontWeight: 400 }}>
+              {formatTimeRange(schedule.startTime, schedule.endTime)}
+            </span>
+          )}
         </div>
         {schedule.notes && (
           <div style={{
@@ -827,4 +832,11 @@ function formatMD(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('ja-JP', {
     month: 'numeric', day: 'numeric', weekday: 'short'
   })
+}
+
+function formatTimeRange(start?: string, end?: string): string {
+  if (!start && !end) return ''
+  if (start && end) return `(${start}〜${end})`
+  if (start) return `(${start}〜)`
+  return `(〜${end})`
 }
