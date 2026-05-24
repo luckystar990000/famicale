@@ -20,7 +20,11 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 
 直近で実装済み (commit ハッシュ付き、 新しい順):
 
-- (this commit) **EventCard 微調整 (visit pill + gauge pattern + 文字)**:
+- (this commit) **eventStatus 分離 + バッジ outline / ネオングロー**:
+  - 並び / 絞り込み / Header 色 / 終わったイベント分類 は **eventStatus (会期 base)** を使うように分離。 「visitDate set な開催中イベント」 が upcoming 分類でリスト下がる問題解消
+  - 全 badge / visit pill に `.event-badge` で 1px outline (currentColor 35%)。 メリハリアップ
+  - `.badge-pulse` を `transform: scale` ベース → `box-shadow` ベースのネオングロー明滅に。 currentColor + color-mix で badge 色 (赤 / 青 / 紫) に追従、 14px blur / 1px spread / alpha 38% / 2.6s 周期
+- `fccf199` **EventCard 微調整 (visit pill + gauge pattern + 文字)**:
   - 「行く日」 visit pill を Header 右上の通常 badge と統合: visitDate set + active 時、 紫 pill が「行く日 6/14 ・ あと N日」 を担う (countdown 情報も込み)。 試行錯誤の末たどり着いた最終形 (Body 内 pill / 1 行帯 / Header line 2 ピル等を経由)
   - Gauge fill に SVG inline の「<<<<」 シェブロンパターンを白 alpha 0.3 で重ねる (時間の流れ暗示)。 アニメは無し
   - カードの日付テキストを 13 → 14px + weight 500、 active は label 色、 past は secondary 色 (主軸情報として強化)

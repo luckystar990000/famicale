@@ -20,7 +20,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'starting', label: '始まりそう' },
 ]
 
-type Item = { schedule: Schedule; status: EventStatus }
+type Item = { schedule: Schedule; status: EventStatus; eventStatus: EventStatus }
 
 function inTab(status: EventStatus, tab: TabId): boolean {
   const kind = status.kind
@@ -78,7 +78,11 @@ export default function ViewerPage() {
   })
 
   const classified = useMemo(
-    () => items.map<Item>(s => ({ schedule: s, status: classify(s) })),
+    () => items.map<Item>(s => ({
+      schedule: s,
+      status: classify(s),
+      eventStatus: classify(s, undefined, { ignoreVisitDate: true }),
+    })),
     [items]
   )
 
@@ -90,13 +94,13 @@ export default function ViewerPage() {
   const closed = useMemo(
     () => classified.filter(i =>
       i.schedule.status === 'cancelled' ||
-      (i.status.kind === 'past' && !isRecentlyEnded(i.status))
+      (i.eventStatus.kind === 'past' && !isRecentlyEnded(i.eventStatus))
     ),
     [classified]
   )
 
   const visible = useMemo(() => {
-    const filtered = active.filter(i => inTab(i.status, tab))
+    const filtered = active.filter(i => inTab(i.eventStatus, tab))
     return sortForTab(filtered, tab)
   }, [active, tab])
 
@@ -104,7 +108,7 @@ export default function ViewerPage() {
     const c: Record<TabId, number> = { all: 0, ongoing: 0, upcoming: 0, ending: 0, starting: 0 }
     for (const i of active) {
       for (const t of TABS) {
-        if (inTab(i.status, t.id)) c[t.id]++
+        if (inTab(i.eventStatus, t.id)) c[t.id]++
       }
     }
     return c
@@ -180,8 +184,8 @@ export default function ViewerPage() {
           </p>
         )}
 
-        {visible.map(({ schedule, status }) => (
-          <EventCard key={schedule.id} schedule={schedule} status={status} />
+        {visible.map(({ schedule, status, eventStatus }) => (
+          <EventCard key={schedule.id} schedule={schedule} status={status} eventStatus={eventStatus} />
         ))}
 
         {showClosed && (
@@ -200,8 +204,8 @@ export default function ViewerPage() {
             </summary>
             <div style={{ marginTop: 8 }}>
               {[...closed].sort((a, b) => b.schedule.startDate.localeCompare(a.schedule.startDate))
-                .map(({ schedule, status }) => (
-                  <EventCard key={schedule.id} schedule={schedule} status={status} />
+                .map(({ schedule, status, eventStatus }) => (
+                  <EventCard key={schedule.id} schedule={schedule} status={status} eventStatus={eventStatus} />
                 ))}
             </div>
           </details>
@@ -282,7 +286,7 @@ function SegmentedControl({ value, onChange, counts }: {
   )
 }
 
-function EventCard({ schedule, status }: { schedule: Schedule; status: EventStatus }) {
+function EventCard({ schedule, status, eventStatus }: { schedule: Schedule; status: EventStatus; eventStatus: EventStatus }) {
   const cancelled = schedule.status === 'cancelled'
   const badge = statusBadge(status, schedule)
   const accent = cancelled
@@ -319,7 +323,7 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
         alignItems: 'flex-start',
         gap: 8,
         padding: '12px 16px',
-        background: cardHeaderBg(status, cancelled),
+        background: cardHeaderBg(eventStatus, cancelled),
       }}>
         <div style={{
           flex: 1, minWidth: 0,
@@ -334,7 +338,7 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
         </div>
         {!cancelled && schedule.visitDate ? (
           <span
-            className={isSoon ? 'badge-pulse' : undefined}
+            className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
             style={{
               display: 'inline-flex',
               alignItems: 'baseline',
@@ -357,7 +361,7 @@ function EventCard({ schedule, status }: { schedule: Schedule; status: EventStat
           </span>
         ) : (
           <div
-            className={isSoon ? 'badge-pulse' : undefined}
+            className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
             style={{
               padding: '4px 10px', borderRadius: 999,
               background: cancelled ? '#fee2e2' : badge.bg,

@@ -32,11 +32,12 @@ export function effectiveEnd(schedule: Schedule): string | undefined {
   return schedule.visitDate ? undefined : schedule.endDate
 }
 
-export function classify(schedule: Schedule, today = new Date()): EventStatus {
+export function classify(schedule: Schedule, today = new Date(), opts: { ignoreVisitDate?: boolean } = {}): EventStatus {
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const start = toDate(effectiveStart(schedule))
-  const effEnd = effectiveEnd(schedule)
-  const end = effEnd ? toDate(effEnd) : null
+  const startStr = opts.ignoreVisitDate ? schedule.startDate : effectiveStart(schedule)
+  const endStr = opts.ignoreVisitDate ? schedule.endDate : effectiveEnd(schedule)
+  const start = toDate(startStr)
+  const end = endStr ? toDate(endStr) : null
 
   const daysUntilStart = diffDays(t, start)
   const daysUntilEnd = end ? diffDays(t, end) : null

@@ -22,7 +22,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'starting', label: '始まりそう' },
 ]
 
-type Item = { schedule: Schedule; status: EventStatus }
+type Item = { schedule: Schedule; status: EventStatus; eventStatus: EventStatus }
 
 function inTab(status: EventStatus, tab: TabId): boolean {
   const kind = status.kind
@@ -49,19 +49,19 @@ function sortForTab(items: Item[], tab: TabId): Item[] {
   const arr = [...items]
   if (tab === 'all') {
     arr.sort((a, b) => {
-      const r = statusRank(a.status.kind) - statusRank(b.status.kind)
+      const r = statusRank(a.eventStatus.kind) - statusRank(b.eventStatus.kind)
       if (r !== 0) return r
-      const cmp = effectiveStart(a.schedule).localeCompare(effectiveStart(b.schedule))
-      return a.status.kind === 'past' ? -cmp : cmp
+      const cmp = a.schedule.startDate.localeCompare(b.schedule.startDate)
+      return a.eventStatus.kind === 'past' ? -cmp : cmp
     })
   } else if (tab === 'ongoing' || tab === 'ending') {
     arr.sort((a, b) => {
-      const ae = effectiveEnd(a.schedule) ?? effectiveStart(a.schedule)
-      const be = effectiveEnd(b.schedule) ?? effectiveStart(b.schedule)
+      const ae = a.schedule.endDate ?? a.schedule.startDate
+      const be = b.schedule.endDate ?? b.schedule.startDate
       return ae.localeCompare(be)
     })
   } else if (tab === 'upcoming' || tab === 'starting') {
-    arr.sort((a, b) => effectiveStart(a.schedule).localeCompare(effectiveStart(b.schedule)))
+    arr.sort((a, b) => a.schedule.startDate.localeCompare(b.schedule.startDate))
   }
   return arr
 }
@@ -105,7 +105,11 @@ export default function CountdownPage() {
   })
 
   const classified = useMemo(
-    () => items.map<Item>(s => ({ schedule: s, status: classify(s) })),
+    () => items.map<Item>(s => ({
+      schedule: s,
+      status: classify(s),
+      eventStatus: classify(s, undefined, { ignoreVisitDate: true }),
+    })),
     [items]
   )
 
@@ -117,7 +121,7 @@ export default function CountdownPage() {
   const closed = useMemo(
     () => classified.filter(i =>
       i.schedule.status === 'cancelled' ||
-      (i.status.kind === 'past' && !isRecentlyEnded(i.status))
+      (i.eventStatus.kind === 'past' && !isRecentlyEnded(i.eventStatus))
     ),
     [classified]
   )
@@ -133,7 +137,7 @@ export default function CountdownPage() {
     }
     const matchesTag = (s: Schedule) => !selectedTag || (s.tags?.includes(selectedTag) ?? false)
     const filtered = active.filter(i =>
-      inTab(i.status, tab) && matchesQuery(i.schedule) && matchesTag(i.schedule)
+      inTab(i.eventStatus, tab) && matchesQuery(i.schedule) && matchesTag(i.schedule)
     )
     return sortForTab(filtered, tab)
   }, [active, tab, query, selectedTag])
@@ -142,7 +146,7 @@ export default function CountdownPage() {
     const c: Record<TabId, number> = { all: 0, ongoing: 0, upcoming: 0, ending: 0, starting: 0 }
     for (const i of active) {
       for (const t of TABS) {
-        if (inTab(i.status, t.id)) c[t.id]++
+        if (inTab(i.eventStatus, t.id)) c[t.id]++
       }
     }
     return c
@@ -257,11 +261,12 @@ export default function CountdownPage() {
           </div>
         )}
 
-        {visible.map(({ schedule, status }) => (
+        {visible.map(({ schedule, status, eventStatus }) => (
           <EventCard
             key={schedule.id}
             schedule={schedule}
             status={status}
+            eventStatus={eventStatus}
             onTagClick={setSelectedTag}
           />
         ))}
@@ -282,11 +287,12 @@ export default function CountdownPage() {
             </summary>
             <div style={{ marginTop: 8 }}>
               {[...closed].sort((a, b) => b.schedule.startDate.localeCompare(a.schedule.startDate))
-                .map(({ schedule, status }) => (
+                .map(({ schedule, status, eventStatus }) => (
                   <EventCard
                     key={schedule.id}
                     schedule={schedule}
                     status={status}
+                    eventStatus={eventStatus}
                     onTagClick={setSelectedTag}
                   />
                 ))}
@@ -591,9 +597,10 @@ function SegmentedControl({ value, onChange, counts }: {
   )
 }
 
-function EventCard({ schedule, status, onTagClick }: {
+function EventCard({ schedule, status, eventStatus, onTagClick }: {
   schedule: Schedule
   status: EventStatus
+  eventStatus: EventStatus
   onTagClick: (tag: string) => void
 }) {
   const cancelled = schedule.status === 'cancelled'
@@ -635,7 +642,7 @@ function EventCard({ schedule, status, onTagClick }: {
         alignItems: 'flex-start',
         gap: 8,
         padding: '12px 16px',
-        background: cardHeaderBg(status, cancelled),
+        background: cardHeaderBg(eventStatus, cancelled),
       }}>
         <div style={{
           flex: 1, minWidth: 0,
@@ -650,7 +657,7 @@ function EventCard({ schedule, status, onTagClick }: {
         </div>
         {!cancelled && schedule.visitDate ? (
           <span
-            className={isSoon ? 'badge-pulse' : undefined}
+            className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
             style={{
               display: 'inline-flex',
               alignItems: 'baseline',
@@ -673,7 +680,7 @@ function EventCard({ schedule, status, onTagClick }: {
           </span>
         ) : (
           <div
-            className={isSoon ? 'badge-pulse' : undefined}
+            className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
             style={{
               padding: '4px 10px', borderRadius: 999,
               background: cancelled ? '#fee2e2' : badge.bg,

@@ -90,12 +90,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes badge-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.96); }
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 14px 1px color-mix(in srgb, currentColor 38%, transparent); }
+}
+
+.event-badge {
+  outline: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  outline-offset: -1px;
 }
 
 .badge-pulse {
-  animation: badge-pulse 1.6s ease-in-out infinite;
+  outline: 1px solid color-mix(in srgb, currentColor 55%, transparent);
+  outline-offset: -1px;
+  animation: badge-pulse 2.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
