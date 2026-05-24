@@ -4,7 +4,7 @@ import { Share2, X, Search } from 'lucide-react'
 import type { Schedule } from '@famicale/shared'
 import {
   classify, statusBadge, statusAccent, gaugeFill, isRecentlyEnded,
-  effectiveStart, effectiveEnd, cardHeaderBg,
+  effectiveStart, effectiveEnd, cardHeaderBg, isVisitOutOfRange,
   type EventStatus,
 } from '../lib/event-status'
 import { useSchedules } from '../state/schedules'
@@ -604,12 +604,15 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
   onTagClick: (tag: string) => void
 }) {
   const cancelled = schedule.status === 'cancelled'
+  const outOfRange = isVisitOutOfRange(schedule)
   const badge = statusBadge(status, schedule)
   const accent = cancelled
     ? '#9ca3af'
-    : status.kind === 'past'
-      ? '#9ca3af'
-      : statusAccent(status)
+    : outOfRange
+      ? '#ff3b30'
+      : status.kind === 'past'
+        ? '#9ca3af'
+        : statusAccent(status)
   const gauge = cancelled ? null : gaugeFill(schedule, status)
   const isOngoing = status.kind === 'ongoing' || status.kind === 'ending-soon' || status.kind === 'ongoing-today'
   const dateText = formatDateLabel(schedule, status)
@@ -629,7 +632,7 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
         background: 'var(--bg-card)',
         backdropFilter: 'saturate(160%) blur(22px)',
         WebkitBackdropFilter: 'saturate(160%) blur(22px)',
-        border: '0.5px solid var(--glass-border)',
+        border: outOfRange ? '1.5px solid rgba(255, 59, 48, 0.6)' : '0.5px solid var(--glass-border)',
         boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 18px rgba(0, 0, 0, 0.06)',
         borderRadius: 27,
         overflow: 'hidden',
@@ -642,7 +645,7 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
         alignItems: 'flex-start',
         gap: 8,
         padding: '12px 16px',
-        background: cardHeaderBg(eventStatus, cancelled),
+        background: cardHeaderBg(eventStatus, cancelled, outOfRange),
       }}>
         <div style={{
           flex: 1, minWidth: 0,
@@ -664,8 +667,8 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
               gap: 6,
               padding: '5px 12px',
               borderRadius: 999,
-              background: 'rgba(175, 82, 222, 0.16)',
-              color: '#af52de',
+              background: outOfRange ? 'rgba(255, 59, 48, 0.16)' : 'rgba(175, 82, 222, 0.16)',
+              color: outOfRange ? 'var(--destructive)' : '#af52de',
               fontSize: 13,
               fontWeight: 700,
               whiteSpace: 'nowrap',
@@ -674,7 +677,9 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
           >
             <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>行く日</span>
             <span>{formatMD(schedule.visitDate)}</span>
-            {countdownTail(status) && (
+            {outOfRange ? (
+              <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>終了後</span>
+            ) : countdownTail(status) && (
               <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>{countdownTail(status)}</span>
             )}
           </span>
@@ -720,7 +725,10 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
       )}
 
       {/* Body */}
-      <div style={{ padding: '10px 16px' }}>
+      <div style={{
+        padding: '10px 16px',
+        background: outOfRange ? 'rgba(255, 59, 48, 0.04)' : undefined,
+      }}>
         <div style={{
           fontSize: 14, color: dateColor, fontWeight: 500,
           overflow: 'hidden',
@@ -751,7 +759,11 @@ function EventCard({ schedule, status, eventStatus, onTagClick }: {
 
       {/* Footer */}
       {schedule.tags && schedule.tags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 16px 12px' }}>
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: 4,
+          padding: '0 16px 12px',
+          background: outOfRange ? 'rgba(255, 59, 48, 0.04)' : undefined,
+        }}>
           {schedule.tags.map(t => (
             <button
               key={t}

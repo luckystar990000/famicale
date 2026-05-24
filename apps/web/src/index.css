@@ -139,6 +139,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   pointer-events: none;
 }
 
+.ios-list > .no-divider::before,
+.ios-list > .no-divider-next + *::before {
+  display: none;
+}
+
 .ios-list {
   position: relative;
 }

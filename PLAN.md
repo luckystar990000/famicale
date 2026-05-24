@@ -20,8 +20,15 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 
 直近で実装済み (commit ハッシュ付き、 新しい順):
 
-- (this commit) **eventStatus 分離 + バッジ outline / ネオングロー**:
-  - 並び / 絞り込み / Header 色 / 終わったイベント分類 は **eventStatus (会期 base)** を使うように分離。 「visitDate set な開催中イベント」 が upcoming 分類でリスト下がる問題解消
+- (this commit) **visitOutOfRange の警告状態 (赤系トーン)**:
+  - visitDate 設定時に終了日後の日付を入れたら AlertDialog で確認、 OK で設定
+  - 設定後の赤系トーン: カード root 1.5px 赤枠 / Header 赤 / Body / Footer 薄赤 bg / visit pill 紫 → 赤 / gauge 赤 / 詳細ヒーローも赤
+  - visit pill の「あと N 日」 を「終了後」 に置換、 ヒーロー大数字も「終了後」 + subtitle「行く日が終了日を過ぎています」
+  - 詳細画面の「行く日」 input 文字色赤化、 警告メッセージを ListSection 内に右寄せで密着配置
+  - 用語統一: 「会期」 (= 混乱しやすい) → 「終了日」 / 「期間」 系に。 「終了済」 (イベント自体終了の誤解) → 「終了後」 (= 終了日後の visitDate)
+  - visitDate input の min を max(today, startDate) に制限 (過去日付入らない別バリデーションも追加)
+- `4c7fc50` **eventStatus 分離 + バッジ outline / ネオングロー**:
+  - 並び / 絞り込み / Header 色 / 終わったイベント分類 は **eventStatus (イベント期間 base)** を使うように分離。 「visitDate set な開催中イベント」 が upcoming 分類でリスト下がる問題解消
   - 全 badge / visit pill に `.event-badge` で 1px outline (currentColor 35%)。 メリハリアップ
   - `.badge-pulse` を `transform: scale` ベース → `box-shadow` ベースのネオングロー明滅に。 currentColor + color-mix で badge 色 (赤 / 青 / 紫) に追従、 14px blur / 1px spread / alpha 38% / 2.6s 周期
 - `fccf199` **EventCard 微調整 (visit pill + gauge pattern + 文字)**:
@@ -32,7 +39,7 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 - `96c1a99` **EventCard 仕上げ (gauge 位置 + past 文字色 + 空トラックバー)**: gauge を Header と Body の間に移動、 past 文字色 1 段薄く、 gauge null も空バー
 - `fa378e7` **visitDate (行く日) + EventCard 再構築 + 詳細アクション整理 + Toast**:
   - `Schedule.visitDate` 追加 (backlog #5 案 A)、 期間イベントに「自分が行く日」 1 個を持てる。 visitDate set 時の countdown / sort / 延期は visitDate 基準。 兄弟複数日対応は案 B として保留
-  - ホーム EventCard を **Header / Body / Footer + Gauge** に再構築。 StatusDot / chevron / 会期補足 / postponedFrom 表示はカードから廃止 (詳細画面のみ)。 Header に状態色 alpha 0.06 オーバーレイで弱グルーピング
+  - ホーム EventCard を **Header / Body / Footer + Gauge** に再構築。 StatusDot / chevron / 期間補足 / postponedFrom 表示はカードから廃止 (詳細画面のみ)。 Header に状態色 alpha 0.06 オーバーレイで弱グルーピング
   - 詳細画面のアクションを再構成: 「ズラす」「イベントの日程をズラす」 (visitDate set 時)「行くのをやめる」「中止 / 削除」 を主語付きに、 小見出し「予定の編集」 で情報セクションと区切る
   - Toast コンポーネント新設 (Liquid Glass レシピで AlertDialog と統一、 全幅、 取り消すボタン付き)。 中止 / 行くのをやめる で Toast + undo
   - 「1 タップ翌日ズラス」 ショートカットは試作後に廃止。 Sheet 経由 (+1 日 chip) のみに統一

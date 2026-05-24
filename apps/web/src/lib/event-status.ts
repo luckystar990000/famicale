@@ -104,7 +104,8 @@ export function statusAccent(status: EventStatus): string {
   }
 }
 
-export function cardHeaderBg(status: EventStatus, cancelled: boolean): string {
+export function cardHeaderBg(status: EventStatus, cancelled: boolean, outOfRange = false): string {
+  if (outOfRange) return 'rgba(255, 59, 48, 0.08)'
   if (cancelled) return 'rgba(156, 163, 175, 0.06)'
   switch (status.kind) {
     case 'ongoing-today':
@@ -117,6 +118,12 @@ export function cardHeaderBg(status: EventStatus, cancelled: boolean): string {
     case 'past':
       return 'rgba(156, 163, 175, 0.06)'
   }
+}
+
+export function isVisitOutOfRange(schedule: Schedule): boolean {
+  if (!schedule.visitDate) return false
+  if (schedule.endDate) return schedule.visitDate > schedule.endDate
+  return schedule.visitDate > schedule.startDate
 }
 
 export function sortKey(schedule: Schedule, status: EventStatus): [number, number] {

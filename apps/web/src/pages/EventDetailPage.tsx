@@ -8,7 +8,7 @@ import AlertDialog from '../components/AlertDialog'
 import Toast from '../components/Toast'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
-import { classify, statusAccent, gaugeFill, isBirthdayEvent, type EventStatus } from '../lib/event-status'
+import { classify, statusAccent, gaugeFill, isBirthdayEvent, isVisitOutOfRange, type EventStatus } from '../lib/event-status'
 
 type EditField = 'title' | 'tags' | 'notes' | null
 
@@ -28,6 +28,8 @@ export default function EventDetailPage() {
   const [eventPeriodOpen, setEventPeriodOpen] = useState(false)
   const [draftEventPeriodDate, setDraftEventPeriodDate] = useState('')
   const [toast, setToast] = useState<{ message: string; action?: { label: string; onClick: () => void } } | null>(null)
+  const [visitOutOfRangeConfirm, setVisitOutOfRangeConfirm] = useState<string | null>(null)
+  const [visitInputNonce, setVisitInputNonce] = useState(0)
 
   if (!schedule) {
     return (
@@ -41,10 +43,17 @@ export default function EventDetailPage() {
   }
 
   const status = classify(schedule)
-  const accent = schedule.status === 'cancelled' ? '#8e8e93' : statusAccent(status)
-  const gauge = schedule.status === 'cancelled' ? null : gaugeFill(schedule, status)
   const cancelled = schedule.status === 'cancelled'
-  const heroInfo = heroText(status, cancelled, schedule)
+  const visitOutOfRange = isVisitOutOfRange(schedule)
+  const accent = cancelled
+    ? '#8e8e93'
+    : visitOutOfRange
+      ? '#ff3b30'
+      : statusAccent(status)
+  const gauge = cancelled ? null : gaugeFill(schedule, status)
+  const heroInfo = heroText(status, cancelled, schedule, visitOutOfRange)
+  const todayISO = formatISO(new Date())
+  const visitMin = schedule.startDate > todayISO ? schedule.startDate : todayISO
 
   function confirmDelete() {
     if (!schedule) return
@@ -311,20 +320,27 @@ export default function EventDetailPage() {
           <ListRow label="行く日">
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
               <input
-                key={`visit-${schedule.visitDate}`}
+                key={`visit-${schedule.visitDate}-${visitInputNonce}`}
                 type="date"
                 defaultValue={schedule.visitDate}
                 onBlur={e => {
                   const v = e.target.value
-                  if (v !== schedule.visitDate) {
-                    update(schedule.id, { visitDate: v || undefined })
+                  if (v && v < visitMin) {
+                    e.target.value = schedule.visitDate ?? visitMin
+                    return
                   }
+                  if (v === schedule.visitDate) return
+                  if (v && schedule.endDate && v > schedule.endDate) {
+                    setVisitOutOfRangeConfirm(v)
+                    return
+                  }
+                  update(schedule.id, { visitDate: v || undefined })
                 }}
-                min={schedule.startDate}
-                max={schedule.endDate}
+                min={visitMin}
                 style={{
                   ...inlineDateInputStyle,
                   paddingRight: 32,
+                  color: visitOutOfRange ? 'var(--destructive)' : 'var(--label)',
                 }}
               />
               <button
@@ -343,11 +359,25 @@ export default function EventDetailPage() {
             </div>
           </ListRow>
         ) : (
-          <ListRow onClick={() => update(schedule.id, { visitDate: schedule.startDate })}>
+          <ListRow onClick={() => update(schedule.id, { visitDate: visitMin })}>
             <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
               + 行く日を設定
             </span>
           </ListRow>
+        )}
+        {visitOutOfRange && (
+          <div className="no-divider" style={{
+            marginTop: -10,
+            padding: '0 20px 14px',
+            fontSize: 13,
+            color: 'var(--destructive)',
+            lineHeight: 1.4,
+            textAlign: 'right',
+          }}>
+            {schedule.endDate
+              ? '行く日がイベントの終了日より後に設定されています'
+              : '行く日がイベントの開始日より後に設定されています'}
+          </div>
         )}
         {schedule.postponedFrom && (
           <ListRow label="元の予定">
@@ -520,6 +550,24 @@ export default function EventDetailPage() {
           setEndDateClearConfirmOpen(false)
         }}
         onCancel={() => setEndDateClearConfirmOpen(false)}
+      />
+
+      <AlertDialog
+        open={visitOutOfRangeConfirm !== null}
+        title="イベントの終了日より後の日付です"
+        message={`このイベントは ${schedule.endDate ? formatShortDate(schedule.endDate) : ''} に終わります。 行く日として ${visitOutOfRangeConfirm ? formatShortDate(visitOutOfRangeConfirm) : ''} を設定しますか？`}
+        confirmLabel="設定する"
+        destructive
+        onConfirm={() => {
+          if (visitOutOfRangeConfirm) {
+            update(schedule.id, { visitDate: visitOutOfRangeConfirm })
+          }
+          setVisitOutOfRangeConfirm(null)
+        }}
+        onCancel={() => {
+          setVisitOutOfRangeConfirm(null)
+          setVisitInputNonce(n => n + 1)
+        }}
       />
 
       <Sheet
@@ -759,7 +807,7 @@ const inlineDateInputStyle: React.CSSProperties = {
   textAlign: 'left',
 }
 
-function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): {
+function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule, outOfRange: boolean): {
   label: string
   bigNumber: string
   unit?: string
@@ -767,6 +815,13 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): 
 } {
   if (cancelled) {
     return { label: '', bigNumber: '中止', subtitle: '' }
+  }
+  if (outOfRange) {
+    return {
+      label: '',
+      bigNumber: '終了後',
+      subtitle: '行く日が終了日を過ぎています',
+    }
   }
   const hasVisit = !!schedule.visitDate
   const isBirthday = !hasVisit && isBirthdayEvent(schedule)
@@ -815,6 +870,10 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule): 
 function addDays(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00`)
   d.setDate(d.getDate() + days)
+  return formatISO(d)
+}
+
+function formatISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 

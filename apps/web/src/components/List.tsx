@@ -2,7 +2,7 @@ import type { ReactNode, CSSProperties } from 'react'
 
 interface SectionProps {
   header?: string
-  footer?: string
+  footer?: ReactNode
   children: ReactNode
   style?: CSSProperties
 }
@@ -55,9 +55,10 @@ interface RowProps {
   destructive?: boolean
   disabled?: boolean
   align?: 'horizontal' | 'vertical'
+  className?: string
 }
 
-export function ListRow({ label, value, children, onClick, trailing, destructive, disabled, align = 'horizontal' }: RowProps) {
+export function ListRow({ label, value, children, onClick, trailing, destructive, disabled, align = 'horizontal', className }: RowProps) {
   const interactive = !!onClick && !disabled
   const baseStyle: CSSProperties = {
     minHeight: 54,
@@ -117,12 +118,16 @@ export function ListRow({ label, value, children, onClick, trailing, destructive
   )
 
   if (onClick) {
+    const buttonClass = [
+      disabled ? undefined : 'press-feedback',
+      className,
+    ].filter(Boolean).join(' ') || undefined
     return (
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={disabled ? undefined : 'press-feedback'}
+        className={buttonClass}
         style={baseStyle}
       >
         {inner}
@@ -130,5 +135,5 @@ export function ListRow({ label, value, children, onClick, trailing, destructive
     )
   }
 
-  return <div style={baseStyle}>{inner}</div>
+  return <div className={className} style={baseStyle}>{inner}</div>
 }
