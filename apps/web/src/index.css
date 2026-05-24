@@ -102,6 +102,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .badge-pulse { animation: none; }
 }
 
+.gauge-flow {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="4" viewBox="0 0 6 4"><polyline points="4,0.5 1.5,2 4,3.5" fill="none" stroke="white" stroke-opacity="0.3" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
 .press-feedback {
   transition: background-color 0.1s ease, opacity 0.1s ease;
 }

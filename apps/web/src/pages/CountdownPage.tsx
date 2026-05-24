@@ -609,6 +609,7 @@ function EventCard({ schedule, status, onTagClick }: {
   const isSoon = !cancelled && (status.kind === 'upcoming-soon' || status.kind === 'ending-soon')
   const isPast = !cancelled && status.kind === 'past'
   const titleColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
+  const dateColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
   const subTextColor = isPast ? 'var(--label-tertiary)' : 'var(--label-secondary)'
 
   return (
@@ -647,18 +648,43 @@ function EventCard({ schedule, status, onTagClick }: {
         }}>
           {schedule.title}
         </div>
-        <div
-          className={isSoon ? 'badge-pulse' : undefined}
-          style={{
-            padding: '4px 10px', borderRadius: 999,
-            background: cancelled ? '#fee2e2' : badge.bg,
-            color: cancelled ? '#991b1b' : badge.color,
-            fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          {cancelled ? '中止' : badge.label}
-        </div>
+        {!cancelled && schedule.visitDate ? (
+          <span
+            className={isSoon ? 'badge-pulse' : undefined}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'baseline',
+              gap: 6,
+              padding: '5px 12px',
+              borderRadius: 999,
+              background: 'rgba(175, 82, 222, 0.16)',
+              color: '#af52de',
+              fontSize: 13,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>行く日</span>
+            <span>{formatMD(schedule.visitDate)}</span>
+            {countdownTail(status) && (
+              <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>{countdownTail(status)}</span>
+            )}
+          </span>
+        ) : (
+          <div
+            className={isSoon ? 'badge-pulse' : undefined}
+            style={{
+              padding: '4px 10px', borderRadius: 999,
+              background: cancelled ? '#fee2e2' : badge.bg,
+              color: cancelled ? '#991b1b' : badge.color,
+              fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            {cancelled ? '中止' : badge.label}
+          </div>
+        )}
       </div>
 
       {gauge ? (
@@ -670,13 +696,17 @@ function EventCard({ schedule, status, onTagClick }: {
           aria-valuemax={100}
           style={{ height: 4, background: 'rgba(0,0,0,0.05)', position: 'relative' }}
         >
-          <div style={{
-            position: 'absolute',
-            [gauge.fillFrom]: 0,
-            top: 0, bottom: 0,
-            width: `${gauge.fill * 100}%`, background: accent,
-            transition: 'width 0.3s ease',
-          }} />
+          <div
+            className="gauge-flow"
+            style={{
+              position: 'absolute',
+              [gauge.fillFrom]: 0,
+              top: 0, bottom: 0,
+              width: `${gauge.fill * 100}%`,
+              backgroundColor: accent,
+              transition: 'width 0.3s ease',
+            }}
+          />
         </div>
       ) : (
         <div style={{ height: 4, background: 'rgba(0,0,0,0.05)' }} aria-hidden />
@@ -684,9 +714,17 @@ function EventCard({ schedule, status, onTagClick }: {
 
       {/* Body */}
       <div style={{ padding: '10px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {schedule.visitDate && <VisitPill />}
-          <div style={{ fontSize: 13, color: subTextColor }}>{dateText}</div>
+        <div style={{
+          fontSize: 14, color: dateColor, fontWeight: 500,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {schedule.visitDate
+            ? (schedule.endDate
+              ? `${formatMD(schedule.startDate)} 〜 ${formatMD(schedule.endDate)}`
+              : formatMD(schedule.startDate))
+            : dateText}
         </div>
         {schedule.notes && (
           <div style={{
@@ -727,23 +765,6 @@ function EventCard({ schedule, status, onTagClick }: {
   )
 }
 
-function VisitPill() {
-  return (
-    <span style={{
-      padding: '1px 8px',
-      borderRadius: 999,
-      background: 'rgba(175, 82, 222, 0.14)',
-      color: '#af52de',
-      fontSize: 11,
-      fontWeight: 700,
-      flexShrink: 0,
-      lineHeight: 1.5,
-    }}>
-      行く日
-    </span>
-  )
-}
-
 const cardTagChipStyle: React.CSSProperties = {
   padding: '2px 8px',
   borderRadius: 999,
@@ -751,6 +772,22 @@ const cardTagChipStyle: React.CSSProperties = {
   color: 'var(--tint)',
   fontSize: 11,
   fontWeight: 500,
+}
+
+function countdownTail(status: EventStatus): string {
+  switch (status.kind) {
+    case 'upcoming-soon':
+    case 'upcoming':
+      return `あと${status.daysUntilStart}日`
+    case 'ongoing-today':
+      return '今日'
+    case 'past':
+      if (status.daysSinceEnd === 1) return '昨日'
+      return `${status.daysSinceEnd}日前`
+    case 'ongoing':
+    case 'ending-soon':
+      return ''
+  }
 }
 
 function formatDateLabel(schedule: Schedule, status: EventStatus): string {

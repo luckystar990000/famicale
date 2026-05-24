@@ -20,7 +20,12 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 
 直近で実装済み (commit ハッシュ付き、 新しい順):
 
-- (this commit) **EventCard 仕上げ**: gauge を Header と Body の間に移動 (カード末尾の角丸 R に重なる違和感解消)、 past は文字色 1 段薄く、 gauge null (past/cancelled) もトラックバーだけ出して境界統一
+- (this commit) **EventCard 微調整 (visit pill + gauge pattern + 文字)**:
+  - 「行く日」 visit pill を Header 右上の通常 badge と統合: visitDate set + active 時、 紫 pill が「行く日 6/14 ・ あと N日」 を担う (countdown 情報も込み)。 試行錯誤の末たどり着いた最終形 (Body 内 pill / 1 行帯 / Header line 2 ピル等を経由)
+  - Gauge fill に SVG inline の「<<<<」 シェブロンパターンを白 alpha 0.3 で重ねる (時間の流れ暗示)。 アニメは無し
+  - カードの日付テキストを 13 → 14px + weight 500、 active は label 色、 past は secondary 色 (主軸情報として強化)
+  - Body から visit pill / 期間補足 を Header と日付テキストに集約、 メリハリ調整
+- `96c1a99` **EventCard 仕上げ (gauge 位置 + past 文字色 + 空トラックバー)**: gauge を Header と Body の間に移動、 past 文字色 1 段薄く、 gauge null も空バー
 - `fa378e7` **visitDate (行く日) + EventCard 再構築 + 詳細アクション整理 + Toast**:
   - `Schedule.visitDate` 追加 (backlog #5 案 A)、 期間イベントに「自分が行く日」 1 個を持てる。 visitDate set 時の countdown / sort / 延期は visitDate 基準。 兄弟複数日対応は案 B として保留
   - ホーム EventCard を **Header / Body / Footer + Gauge** に再構築。 StatusDot / chevron / 会期補足 / postponedFrom 表示はカードから廃止 (詳細画面のみ)。 Header に状態色 alpha 0.06 オーバーレイで弱グルーピング
