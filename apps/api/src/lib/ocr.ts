@@ -16,6 +16,7 @@ export async function extractSchedules(
     'この画像は学校や習い事のプリント、または展示・イベントの告知です。',
     '記載されている日付とイベント名を全て抽出し、以下のJSON配列形式のみで返してください。',
     '[{"title":"イベント名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD|null","category":"school|lessons|family|external|null"}]',
+    '・プリント右上の発行日・配布日は予定ではないので除外。',
     '・単日のイベントは endDate を null にしてください。',
     '・「5月25日〜7月20日」のような期間イベントは startDate と endDate を両方埋めてください。',
     `・年が書かれていない場合は ${year} 年として補ってください。`,
@@ -31,33 +32,48 @@ export async function extractSchedules(
     ],
     image: dataUri,
     max_tokens: 1024,
+    temperature: 0.3,
   })
 
-  // Workers AI vision は response にオブジェクト配列をそのまま入れて返すことがあり、
-  // 文字列で返ることもあるので両対応。
+  // Workers AI vision の response は (a) オブジェクト配列そのまま、 (b) `[...]` 形式の文字列、
+  // (c) `[...]` で囲わず `{...}\n{...}` を並べただけの文字列、 の 3 パターンを観測。 全部拾う。
   const raw = (result as { response?: unknown }).response
-  let parsed: unknown
+  const items: unknown[] = []
   if (Array.isArray(raw)) {
-    parsed = raw
+    items.push(...raw)
   } else if (typeof raw === 'string') {
-    const match = raw.match(/\[[\s\S]*\]/)
-    if (!match) return []
-    try { parsed = JSON.parse(match[0]) } catch { return [] }
-  } else {
-    return []
+    const arrMatch = raw.match(/\[[\s\S]*\]/)
+    if (arrMatch) {
+      try {
+        const parsed = JSON.parse(arrMatch[0])
+        if (Array.isArray(parsed)) items.push(...parsed)
+      } catch { /* fall through to object scan */ }
+    }
+    if (items.length === 0) {
+      for (const m of raw.matchAll(/\{[^{}]*\}/g)) {
+        try { items.push(JSON.parse(m[0])) } catch { /* skip malformed */ }
+      }
+    }
   }
-  if (!Array.isArray(parsed)) return []
 
-  return parsed
-    .filter((s): s is { title: string; startDate: string; endDate?: unknown; category?: unknown } =>
-      !!s && typeof s === 'object' && typeof (s as any).title === 'string' && typeof (s as any).startDate === 'string'
-    )
-    .map(s => ({
-      title: s.title,
-      startDate: s.startDate,
-      endDate: typeof s.endDate === 'string' && s.endDate !== 'null' ? s.endDate : undefined,
-      category: typeof s.category === 'string' && s.category !== 'null' ? s.category : undefined,
-    }))
+  const seen = new Set<string>()
+  const out: ExtractedSchedule[] = []
+  for (const s of items) {
+    if (!s || typeof s !== 'object') continue
+    const o = s as { title?: unknown; startDate?: unknown; endDate?: unknown; category?: unknown }
+    if (typeof o.title !== 'string' || typeof o.startDate !== 'string') continue
+    const endDate = typeof o.endDate === 'string' && o.endDate !== 'null' ? o.endDate : undefined
+    const key = `${o.title}|${o.startDate}|${endDate ?? ''}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      title: o.title,
+      startDate: o.startDate,
+      endDate,
+      category: typeof o.category === 'string' && o.category !== 'null' ? o.category : undefined,
+    })
+  }
+  return out
 }
 
 // stack-safe base64 (String.fromCharCode 引数上限を避けるため 8KB ずつチャンク処理)
