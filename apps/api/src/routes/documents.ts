@@ -37,40 +37,20 @@ documents.post('/', async (c) => {
     'INSERT INTO documents (id, r2_key, filename, content_type, status) VALUES (?, ?, ?, ?, ?)'
   ).bind(id, r2Key, file.name, contentType, 'processing').run()
 
-  c.executionCtx.waitUntil(processDocument(c.env, id, file, contentType))
-
-  return c.json({ id, status: 'processing' }, 201)
-})
-
-async function processDocument(env: Bindings, docId: string, file: File, contentType: string) {
   try {
     const bytes = await file.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)))
-
-    const extracted = await extractSchedules(env.ANTHROPIC_API_KEY, base64, contentType)
-
-    for (const s of extracted) {
-      await env.DB.prepare(
-        `INSERT INTO schedules (id, document_id, source, title, start_date, end_date, category)
-         VALUES (?, ?, 'document', ?, ?, ?, ?)`
-      ).bind(
-        crypto.randomUUID(),
-        docId,
-        s.title,
-        s.startDate,
-        s.endDate ?? null,
-        s.category ?? null,
-      ).run()
-    }
-
-    await env.DB.prepare(
+    const schedules = await extractSchedules(c.env.AI, new Uint8Array(bytes), contentType)
+    await c.env.DB.prepare(
       "UPDATE documents SET status = 'done', updated_at = datetime('now') WHERE id = ?"
-    ).bind(docId).run()
-  } catch {
-    await env.DB.prepare(
+    ).bind(id).run()
+    return c.json({ id, status: 'done', schedules }, 201)
+  } catch (err) {
+    console.error('[documents.post]', id, err)
+    await c.env.DB.prepare(
       "UPDATE documents SET status = 'error', updated_at = datetime('now') WHERE id = ?"
-    ).bind(docId).run()
+    ).bind(id).run()
+    return c.json({ id, status: 'error', error: String(err) }, 500)
   }
-}
+})
 
 export default documents

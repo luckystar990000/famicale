@@ -7,7 +7,6 @@ export type Bindings = {
   DB: D1Database
   BUCKET: R2Bucket
   AI: Ai
-  ANTHROPIC_API_KEY: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()

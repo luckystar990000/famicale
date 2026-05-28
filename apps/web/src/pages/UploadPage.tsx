@@ -5,7 +5,7 @@ import type { ExtractedSchedule } from '@famicale/shared'
 import NavBar from '../components/NavBar'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
-import { mockExtractSchedules } from '../lib/mock-ocr'
+import { uploadDocument } from '../api/client'
 
 type Status = 'idle' | 'preview' | 'analyzing' | 'review' | 'error'
 
@@ -47,9 +47,13 @@ export default function UploadPage() {
     if (!file) return
     setStatus('analyzing')
     try {
-      const result = await mockExtractSchedules(file)
-      setExtracted(result)
-      setSelected(new Set(result.map((_, i) => i)))
+      const result = await uploadDocument(file)
+      if (result.status !== 'done' || !result.schedules) {
+        setStatus('error')
+        return
+      }
+      setExtracted(result.schedules)
+      setSelected(new Set(result.schedules.map((_, i) => i)))
       setStatus('review')
     } catch {
       setStatus('error')
@@ -94,7 +98,6 @@ export default function UploadPage() {
         ref={inputRef}
         type="file"
         accept="image/*,application/pdf"
-        capture="environment"
         style={{ display: 'none' }}
         onChange={e => {
           const f = e.target.files?.[0]
@@ -183,11 +186,10 @@ function DropArea({ onClick }: { onClick: () => void }) {
         <Plus size={30} strokeWidth={2.2} color="var(--tint)" />
       </div>
       <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--label)' }}>
-        ファイルを選択 / 撮影
+        写真 / PDF から取り込み
       </div>
       <div style={{ fontSize: 13, color: 'var(--label-secondary)', textAlign: 'center', lineHeight: 1.4 }}>
-        画像 (JPG / PNG / HEIC) または PDF<br />
-        カメラで撮影も可能
+        アルバム・カメラ・ファイル
       </div>
     </button>
   )

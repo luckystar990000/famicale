@@ -9,7 +9,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "famicale-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "29fa1ee6-14fc-4bae-bd49-0cb5e022385e"
 
 # R2 bucket
 # 作成コマンド: wrangler r2 bucket create famicale-images
@@ -17,11 +17,8 @@ database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 binding = "BUCKET"
 bucket_name = "famicale-images"
 
-# Workers AI
+# Workers AI (OCR で使用、 認証は wrangler login の OAuth、 個別 API キー不要)
+# remote = true で local dev でも remote 実行 (Workers AI はそもそも remote 専用なので警告抑止)
 [ai]
 binding = "AI"
-
-# 環境変数 (シークレット)
-# 設定コマンド: wrangler secret put ANTHROPIC_API_KEY
-# [vars]
-# ANTHROPIC_API_KEY = ""  # wrangler secret で設定すること
+remote = true

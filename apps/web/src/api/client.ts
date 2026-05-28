@@ -1,4 +1,4 @@
-import type { Schedule } from '@famicale/shared'
+import type { Schedule, ExtractedSchedule } from '@famicale/shared'
 
 const BASE = '/api'
 
@@ -43,7 +43,14 @@ export async function deleteSchedule(id: string) {
   return res.json()
 }
 
-export async function uploadDocument(file: File) {
+export interface UploadDocumentResult {
+  id: string
+  status: 'done' | 'error'
+  schedules?: ExtractedSchedule[]
+  error?: string
+}
+
+export async function uploadDocument(file: File): Promise<UploadDocumentResult> {
   const formData = new FormData()
   formData.append('file', file)
   const res = await fetch(`${BASE}/documents`, { method: 'POST', body: formData })
