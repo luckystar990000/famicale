@@ -1,6 +1,19 @@
 import type { Schedule, ExtractedSchedule } from '@famicale/shared'
+import { mockExtractSchedules } from '../lib/mock-ocr'
 
 const BASE = '/api'
+
+// OCR を mock で動かすか実 API で叩くかの切替。 開発中に毎回 Workers AI (Neurons) を
+// 消費しないため。 本番ビルドでは import.meta.env.DEV が false なので常に実 API。
+const OCR_MOCK_KEY = 'famicale_ocr_mock'
+
+export function isOcrMock(): boolean {
+  return import.meta.env.DEV && localStorage.getItem(OCR_MOCK_KEY) === '1'
+}
+
+export function setOcrMock(on: boolean): void {
+  localStorage.setItem(OCR_MOCK_KEY, on ? '1' : '0')
+}
 
 export async function getSchedules(): Promise<Schedule[]> {
   const res = await fetch(`${BASE}/schedules`)
@@ -51,6 +64,10 @@ export interface UploadDocumentResult {
 }
 
 export async function uploadDocument(file: File): Promise<UploadDocumentResult> {
+  if (isOcrMock()) {
+    const schedules = await mockExtractSchedules(file)
+    return { id: 'mock', status: 'done', schedules }
+  }
   const formData = new FormData()
   formData.append('file', file)
   const res = await fetch(`${BASE}/documents`, { method: 'POST', body: formData })

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Check, FileText } from 'lucide-react'
+import { Plus, Check, FileText, FlaskConical } from 'lucide-react'
 import type { ExtractedSchedule } from '@famicale/shared'
 import NavBar from '../components/NavBar'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
-import { uploadDocument } from '../api/client'
+import { uploadDocument, isOcrMock, setOcrMock } from '../api/client'
 
 type Status = 'idle' | 'preview' | 'analyzing' | 'review' | 'error'
 
@@ -82,8 +82,6 @@ export default function UploadPage() {
 
   const rightAction = status === 'preview' ? {
     label: '読み取る', primary: true, onClick: handleAnalyze,
-  } : status === 'review' ? {
-    label: `${selected.size} 件を追加`, primary: true, disabled: selected.size === 0, onClick: handleAdd,
   } : undefined
 
   return (
@@ -108,7 +106,10 @@ export default function UploadPage() {
 
       <div style={{ padding: '20px 16px 0' }}>
         {status === 'idle' && (
-          <DropArea onClick={() => inputRef.current?.click()} />
+          <>
+            <DropArea onClick={() => inputRef.current?.click()} />
+            {import.meta.env.DEV && <DevOcrToggle />}
+          </>
         )}
 
         {(status === 'preview' || status === 'analyzing' || status === 'error') && (
@@ -148,6 +149,7 @@ export default function UploadPage() {
           selected={selected}
           onToggle={toggle}
           onCancel={reset}
+          onAdd={handleAdd}
         />
       )}
     </>
@@ -244,17 +246,18 @@ function PreviewCard({ file, previewUrl, status }: {
   )
 }
 
-function ReviewList({ extracted, selected, onToggle, onCancel }: {
+function ReviewList({ extracted, selected, onToggle, onCancel, onAdd }: {
   extracted: ExtractedSchedule[]
   selected: Set<number>
   onToggle: (i: number) => void
   onCancel: () => void
+  onAdd: () => void
 }) {
   if (extracted.length === 0) {
     return (
       <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--label-secondary)' }}>
         <p>予定が見つかりませんでした</p>
-        <button onClick={onCancel} style={{ ...secondaryBtn(false), marginTop: 16, maxWidth: 200 }}>
+        <button onClick={onCancel} style={{ ...secondaryBtn(false), flex: 'none', width: '100%', maxWidth: 200, margin: '16px auto 0', display: 'block' }}>
           やり直す
         </button>
       </div>
@@ -263,10 +266,7 @@ function ReviewList({ extracted, selected, onToggle, onCancel }: {
 
   return (
     <div style={{ paddingTop: 12 }}>
-      <ListSection
-        header={`抽出されたイベント (${extracted.length})`}
-        footer="追加したくない予定はタップで外せます。追加後はホームから編集できます。"
-      >
+      <ListSection header={`抽出されたイベント (${extracted.length})`}>
         {extracted.map((s, i) => {
           const checked = selected.has(i)
           return (
@@ -286,13 +286,17 @@ function ReviewList({ extracted, selected, onToggle, onCancel }: {
           )
         })}
       </ListSection>
-      <div style={{ padding: '0 16px 16px' }}>
+      <div style={{ display: 'flex', gap: 10, padding: '0 16px 16px' }}>
+        <button type="button" onClick={onCancel} style={secondaryBtn(false)}>
+          やり直す
+        </button>
         <button
           type="button"
-          onClick={onCancel}
-          style={secondaryBtn(false)}
+          onClick={onAdd}
+          disabled={selected.size === 0}
+          style={primaryBtn(selected.size === 0)}
         >
-          やり直す
+          {selected.size} 件を追加
         </button>
       </div>
     </div>
@@ -321,6 +325,47 @@ function Spinner() {
       borderTopColor: 'var(--tint)',
       animation: 'spin 0.8s linear infinite',
     }} />
+  )
+}
+
+// 開発専用: OCR を mock ⇄ 実 API で切替 (本番ビルドでは idle 側の import.meta.env.DEV ガードで非表示)。
+function DevOcrToggle() {
+  const [mock, setMock] = useState(isOcrMock())
+  function toggle() {
+    const next = !mock
+    setOcrMock(next)
+    setMock(next)
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="press-feedback"
+      style={{
+        marginTop: 14,
+        width: '100%',
+        padding: '14px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        background: 'var(--bg-card)',
+        backdropFilter: 'saturate(160%) blur(14px)',
+        WebkitBackdropFilter: 'saturate(160%) blur(14px)',
+        border: '0.5px solid var(--glass-border)',
+        boxShadow: 'inset 0 1px 0 var(--glass-inner-hi)',
+        borderRadius: 27,
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--label)' }}>
+        <FlaskConical size={16} strokeWidth={2} color={mock ? 'var(--tint)' : 'var(--label-secondary)'} />
+        OCR: {mock ? 'モック (AI 不使用)' : '実 API'}
+      </span>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--label-secondary)' }}>
+        タップで切替
+      </span>
+    </button>
   )
 }
 
