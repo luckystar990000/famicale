@@ -18,6 +18,7 @@ export default function UploadPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extracted, setExtracted] = useState<ExtractedSchedule[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   useEffect(() => {
     return () => {
@@ -40,15 +41,24 @@ export default function UploadPage() {
     setPreviewUrl(null)
     setExtracted([])
     setSelected(new Set())
+    setErrorMsg(null)
     setStatus('idle')
   }
 
   async function handleAnalyze() {
     if (!file) return
     setStatus('analyzing')
+    setErrorMsg(null)
     try {
       const result = await uploadDocument(file)
       if (result.status !== 'done' || !result.schedules) {
+        setErrorMsg(
+          result.error === 'scanned-pdf'
+            ? 'この PDF は画像のため文字を読み取れませんでした。写真として取り込んでください'
+            : result.error === 'unsupported-type'
+            ? '写真または PDF を選んでください'
+            : '解析に失敗しました。もう一度お試しください'
+        )
         setStatus('error')
         return
       }
@@ -56,6 +66,7 @@ export default function UploadPage() {
       setSelected(new Set(result.schedules.map((_, i) => i)))
       setStatus('review')
     } catch {
+      setErrorMsg('解析に失敗しました。もう一度お試しください')
       setStatus('error')
     }
   }
@@ -136,7 +147,7 @@ export default function UploadPage() {
             </div>
             {status === 'error' && (
               <p style={{ marginTop: 12, fontSize: 13, color: 'var(--destructive)', textAlign: 'center' }}>
-                解析に失敗しました。もう一度お試しください
+                {errorMsg ?? '解析に失敗しました。もう一度お試しください'}
               </p>
             )}
           </>

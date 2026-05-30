@@ -1,6 +1,16 @@
 import { Hono } from 'hono'
+import { extractText, getDocumentProxy } from 'unpdf'
 import type { Bindings } from '../index'
-import { extractSchedules } from '../lib/ocr'
+import { extractSchedules, extractSchedulesFromText } from '../lib/ocr'
+
+// PDF にこれ未満の文字しか無ければスキャン画像 PDF とみなす (テキストレイヤ無し)。
+const PDF_MIN_TEXT_CHARS = 20
+
+// スキャン PDF を判別するためのエラーコード。 UploadPage で「写真で取り込んで」 に出し分ける。
+export const SCANNED_PDF_ERROR = 'scanned-pdf'
+
+// 画像 / PDF 以外を弾くためのエラーコード。 UploadPage で「対応していない形式」 に出し分ける。
+export const UNSUPPORTED_TYPE_ERROR = 'unsupported-type'
 
 const documents = new Hono<{ Bindings: Bindings }>()
 
@@ -25,9 +35,16 @@ documents.post('/', async (c) => {
   const file = (formData.get('file') ?? formData.get('image')) as File | null
   if (!file) return c.json({ error: 'file field required' }, 400)
 
+  const contentType = file.type || 'application/octet-stream'
+  const isPdf = contentType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+  const isImage = contentType.startsWith('image/')
+  // 画像 / PDF 以外は OCR に渡せない。 R2 保存も AI 呼び出しもする前に弾く (無駄な Neurons 消費回避)。
+  if (!isPdf && !isImage) {
+    return c.json({ status: 'error', error: UNSUPPORTED_TYPE_ERROR }, 415)
+  }
+
   const id = crypto.randomUUID()
   const r2Key = `${id}/${file.name}`
-  const contentType = file.type || 'application/octet-stream'
 
   await c.env.BUCKET.put(r2Key, file.stream(), {
     httpMetadata: { contentType }
@@ -39,7 +56,24 @@ documents.post('/', async (c) => {
 
   try {
     const bytes = await file.arrayBuffer()
-    const schedules = await extractSchedules(c.env.AI, new Uint8Array(bytes), contentType)
+
+    let schedules
+    if (isPdf) {
+      // PDF はテキストレイヤを抜いてテキストモデルへ (vision より速く正確、 Neurons も節約)。
+      const pdf = await getDocumentProxy(new Uint8Array(bytes))
+      const { text } = await extractText(pdf, { mergePages: true })
+      if (text.trim().length < PDF_MIN_TEXT_CHARS) {
+        // 文字が取れない = スキャン画像 PDF。 vision 化は重いので写真取り込みへ誘導。
+        await c.env.DB.prepare(
+          "UPDATE documents SET status = 'error', updated_at = datetime('now') WHERE id = ?"
+        ).bind(id).run()
+        return c.json({ id, status: 'error', error: SCANNED_PDF_ERROR }, 422)
+      }
+      schedules = await extractSchedulesFromText(c.env.AI, text)
+    } else {
+      schedules = await extractSchedules(c.env.AI, new Uint8Array(bytes), contentType)
+    }
+
     await c.env.DB.prepare(
       "UPDATE documents SET status = 'done', updated_at = datetime('now') WHERE id = ?"
     ).bind(id).run()

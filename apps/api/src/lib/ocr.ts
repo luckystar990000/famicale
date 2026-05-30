@@ -4,16 +4,17 @@ import type { ExtractedSchedule } from '@famicale/shared'
 // 認証は wrangler login の OAuth で済む (個別 API キー不要)、 無料枠 10,000 Neurons/日。
 // モデルは llama-3.2-11b-vision-instruct を採用、 精度が出なければ
 // @cf/mistralai/mistral-small-3.1-24b-instruct に切替検討。
-const MODEL = '@cf/meta/llama-3.2-11b-vision-instruct'
+const VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct'
 
-export async function extractSchedules(
-  ai: Ai,
-  imageBytes: Uint8Array,
-  mediaType: string
-): Promise<ExtractedSchedule[]> {
+// PDF のテキストレイヤから抽出するときは画像不要なので軽量なテキストモデルを使う
+// (vision より速く Neurons も食わない)。 精度不足なら llama-3.3-70b-instruct-fp8-fast に。
+const TEXT_MODEL = '@cf/meta/llama-3.1-8b-instruct'
+
+// 抽出ルール (画像 / テキスト共通)。 冒頭の素材説明だけ呼び出し側で差し替える。
+function buildPrompt(intro: string): string {
   const year = new Date().getFullYear()
-  const prompt = [
-    'この画像は学校や習い事のプリント、または展示・イベントの告知です。',
+  return [
+    intro,
     '記載されている日付とイベント名を全て抽出し、以下のJSON配列形式のみで返してください。',
     '[{"title":"イベント名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD|null","category":"school|lessons|family|external|null"}]',
     '・プリント右上の発行日・配布日は予定ではないので除外。',
@@ -22,10 +23,17 @@ export async function extractSchedules(
     `・年が書かれていない場合は ${year} 年として補ってください。`,
     'JSONのみを返し、説明文は不要です。',
   ].join('\n')
+}
 
+export async function extractSchedules(
+  ai: Ai,
+  imageBytes: Uint8Array,
+  mediaType: string
+): Promise<ExtractedSchedule[]> {
+  const prompt = buildPrompt('この画像は学校や習い事のプリント、または展示・イベントの告知です。')
   const dataUri = `data:${mediaType};base64,${toBase64(imageBytes)}`
 
-  const result = await ai.run(MODEL, {
+  const result = await ai.run(VISION_MODEL, {
     messages: [
       { role: 'system', content: 'You only return JSON arrays. No prose.' },
       { role: 'user', content: prompt },
@@ -35,9 +43,36 @@ export async function extractSchedules(
     temperature: 0.3,
   })
 
-  // Workers AI vision の response は (a) オブジェクト配列そのまま、 (b) `[...]` 形式の文字列、
-  // (c) `[...]` で囲わず `{...}\n{...}` を並べただけの文字列、 の 3 パターンを観測。 全部拾う。
-  const raw = (result as { response?: unknown }).response
+  return parseSchedules((result as { response?: unknown }).response)
+}
+
+// PDF のテキストレイヤから抽出したプレーンテキストを渡してイベント抽出。
+export async function extractSchedulesFromText(
+  ai: Ai,
+  text: string
+): Promise<ExtractedSchedule[]> {
+  const prompt = [
+    buildPrompt('以下は学校や習い事のプリント、または展示・イベントの告知から抽出したテキストです。'),
+    '',
+    '--- テキスト ---',
+    text,
+  ].join('\n')
+
+  const result = await ai.run(TEXT_MODEL, {
+    messages: [
+      { role: 'system', content: 'You only return JSON arrays. No prose.' },
+      { role: 'user', content: prompt },
+    ],
+    max_tokens: 1024,
+    temperature: 0.3,
+  })
+
+  return parseSchedules((result as { response?: unknown }).response)
+}
+
+// Workers AI の response は (a) オブジェクト配列そのまま、 (b) `[...]` 形式の文字列、
+// (c) `[...]` で囲わず `{...}\n{...}` を並べただけの文字列、 の 3 パターンを観測。 全部拾う。
+function parseSchedules(raw: unknown): ExtractedSchedule[] {
   const items: unknown[] = []
   if (Array.isArray(raw)) {
     items.push(...raw)

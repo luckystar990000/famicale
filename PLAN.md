@@ -99,11 +99,11 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 - **追加: Sheet モーダル編集 (iOS 風)** — 詳細画面の各フィールド (タイトル/日付/タグ/メモ) タップで sheet 編集、 `createPortal(..., document.body)` で iOS Safari の `position: fixed` 制約回避、 編集画面の右上ボタン廃止。
 - **追加: スクロール位置復元** — ScrollManager (useNavigationType 利用) で POP 時のみ復元、 NavBar 戻るボタンも `navigate(-1)` で POP に統一。
 
+- **#5 PDF 入力経路追加 (2026-05-30 完了)** — 学校メール添付の PDF を取り込む想定。 server 側で `unpdf` によりテキストレイヤ抽出 → テキストモデル (`@cf/meta/llama-3.1-8b-instruct`) で抽出。 スキャン画像 PDF (テキスト無し) は 422 + `scanned-pdf` で「写真で取り込んで」 に誘導。 抽出ルール/パーサは vision と共有。 詳細は [[project-famicale-ocr]]。
+
 ### 未着手
 
-#### #5 PDF 入力経路追加 (残り唯一の元タスク)
-- PDF 用シナリオを mock-ocr で差別化、 実 API では `pdfjs-dist` 等でテキストレイヤ抽出
-- 詳細は元の節を参照
+(元タスクは全て完了。 残りは「機能バックログ」 / トリガ待ちタスクのみ。)
 
 (以下は元の計画詳細、 履歴用に残す)
 
