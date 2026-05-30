@@ -12,6 +12,10 @@ export const SCANNED_PDF_ERROR = 'scanned-pdf'
 // 画像 / PDF 以外を弾くためのエラーコード。 UploadPage で「対応していない形式」 に出し分ける。
 export const UNSUPPORTED_TYPE_ERROR = 'unsupported-type'
 
+// アップロード上限。 これを超えると base64 化のメモリ / vision の 60s タイムアウトに乗りやすい。
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+export const FILE_TOO_LARGE_ERROR = 'file-too-large'
+
 const documents = new Hono<{ Bindings: Bindings }>()
 
 documents.get('/', async (c) => {
@@ -41,6 +45,9 @@ documents.post('/', async (c) => {
   // 画像 / PDF 以外は OCR に渡せない。 R2 保存も AI 呼び出しもする前に弾く (無駄な Neurons 消費回避)。
   if (!isPdf && !isImage) {
     return c.json({ status: 'error', error: UNSUPPORTED_TYPE_ERROR }, 415)
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return c.json({ status: 'error', error: FILE_TOO_LARGE_ERROR }, 413)
   }
 
   const id = crypto.randomUUID()

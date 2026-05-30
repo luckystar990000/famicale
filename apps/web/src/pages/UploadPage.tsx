@@ -57,6 +57,8 @@ export default function UploadPage() {
             ? 'この PDF は画像のため文字を読み取れませんでした。写真として取り込んでください'
             : result.error === 'unsupported-type'
             ? '写真または PDF を選んでください'
+            : result.error === 'file-too-large'
+            ? 'ファイルが大きすぎます (上限 10MB)'
             : '解析に失敗しました。もう一度お試しください'
         )
         setStatus('error')
