@@ -56,6 +56,11 @@ export default function EventDetailPage() {
   const heroInfo = heroText(status, cancelled, schedule, visitOutOfRange)
   const todayISO = formatISO(new Date())
   const visitMin = schedule.startDate > todayISO ? schedule.startDate : todayISO
+  // 過去ログ用の初期値: 行く予定日があればそれ、なければ「最終日 or 今日」の早い方
+  const visitedDefault = schedule.visitDate && schedule.visitDate <= todayISO
+    ? schedule.visitDate
+    : ((schedule.endDate ?? schedule.startDate) < todayISO ? (schedule.endDate ?? schedule.startDate) : todayISO)
+  const canRecordVisited = !cancelled && schedule.startDate <= todayISO
 
   function confirmDelete() {
     if (!schedule) return
@@ -380,6 +385,13 @@ export default function EventDetailPage() {
           <ListRow onClick={() => update(schedule.id, { visitDate: visitMin })}>
             <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
               + 行く日を設定
+            </span>
+          </ListRow>
+        )}
+        {!schedule.visitedDate && canRecordVisited && (
+          <ListRow onClick={() => update(schedule.id, { visitedDate: visitedDefault })}>
+            <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+              + 行った日を記録
             </span>
           </ListRow>
         )}
