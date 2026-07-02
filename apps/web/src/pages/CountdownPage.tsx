@@ -11,15 +11,31 @@ import AlertDialog from '../components/AlertDialog'
 import Chip from '../components/Chip'
 import EventCard from '../components/EventCard'
 import SegmentedControl from '../components/SegmentedControl'
+import Toast, { type ToastTone } from '../components/Toast'
 
 export default function CountdownPage() {
-  const { items, knownTags, deleteTag } = useSchedules()
+  const { items, knownTags, deleteTag, update } = useSchedules()
   const navigate = useNavigate()
   const [tab, setTab] = useState<TabId>('all')
   const [query, setQuery] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedTag = searchParams.get('tag')
   const [tagToDelete, setTagToDelete] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; tone?: ToastTone; action?: { label: string; onClick: () => void } } | null>(null)
+
+  function markVisited(schedule: Schedule) {
+    if (toast !== null) return
+    const targetId = schedule.id
+    update(targetId, { visitedDate: formatISODate(new Date()) })
+    setToast({
+      message: `「${schedule.title}」 行きました！`,
+      tone: 'success',
+      action: {
+        label: '取り消す',
+        onClick: () => update(targetId, { visitedDate: undefined }),
+      },
+    })
+  }
 
   const usedTagSet = useMemo(() => {
     const set = new Set<string>()
@@ -215,6 +231,7 @@ export default function CountdownPage() {
             eventStatus={eventStatus}
             to={`/events/${schedule.id}`}
             onTagClick={setSelectedTag}
+            onVisited={() => markVisited(schedule)}
           />
         ))}
 
@@ -248,6 +265,15 @@ export default function CountdownPage() {
           </details>
         )}
       </div>
+
+      <Toast
+        open={toast !== null}
+        message={toast?.message ?? ''}
+        durationMs={3000}
+        action={toast?.action}
+        tone={toast?.tone}
+        onClose={() => setToast(null)}
+      />
     </>
   )
 }

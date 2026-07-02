@@ -29,6 +29,7 @@ export interface Schedule {
   endDate?: string
   endTime?: string
   visitDate?: string
+  visitedDate?: string
   postponedFrom?: string
   category?: string
   tags?: string[]

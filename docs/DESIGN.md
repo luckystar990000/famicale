@@ -318,6 +318,12 @@ iOS 26 設定アプリ風の中央アラート (リキッドグラス)。 破壊
 
 **Apple HIG には公式の Toast コンポーネントは無い**。 Material 由来の概念なので「黒背景 + 白文字」 風にすると iOS の世界観から浮く。 Apple 自身の 1st-party app (Safari の URL コピー / AirPods 接続カード / 「ホームに追加」 完了) で使われる Liquid Glass のレシピに合わせる。
 
+**トーン (2026-07-02)**: 役割ごとに `tone` prop で色分けする。 色ペアは Toast.tsx の `TOAST_TONE` に一元定義 (バッジと同じ 淡地 + 濃文字)。 呼び出し側で色を直書きしない。
+
+- `success` (緑): ポジティブな完了 — 「行きました！」 「再開しました」
+- `destructive` (赤): 取り返し系の実行 — 「中止しました」
+- `neutral` (灰、 default): その他 — 「行くのをやめました」 等
+
 - 配置: 画面下、 safe-area 上に float (`bottom: calc(env(safe-area-inset-bottom, 0) + 96px)`、 TabBar の上)
 - 形: capsule (`border-radius: 999`)、 **横幅は画面いっぱい** (左右 24px padding)。 メッセージ左 / アクション右 (`justify-content: space-between`)、 アクション無しなら中央寄せ
 - 背景: AlertDialog と同じガラスレシピ — `rgba(245, 245, 245, 0.72)` + `blur(32px) saturate(180%)` + `0.5px hairline` + `inset 0 1px 0 var(--glass-inner-hi)` + 落ち影 (18-44px)

@@ -1,16 +1,18 @@
 import { Link } from 'react-router-dom'
 import type { Schedule } from '@famicale/shared'
+import Checkbox from './Checkbox'
 import {
   statusBadge, statusAccent, gaugeFill, cardHeaderBg, isVisitOutOfRange,
   type EventStatus,
 } from '../lib/event-status'
 
-export default function EventCard({ schedule, status, eventStatus, to, onTagClick }: {
+export default function EventCard({ schedule, status, eventStatus, to, onTagClick, onVisited }: {
   schedule: Schedule
   status: EventStatus
   eventStatus: EventStatus
   to?: string
   onTagClick?: (tag: string) => void
+  onVisited?: () => void
 }) {
   const cancelled = schedule.status === 'cancelled'
   const outOfRange = isVisitOutOfRange(schedule)
@@ -30,6 +32,9 @@ export default function EventCard({ schedule, status, eventStatus, to, onTagClic
   const titleColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
   const dateColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
   const subTextColor = isPast ? 'var(--label-tertiary)' : 'var(--label-secondary)'
+  // 行く日が過ぎていても会期中なら「行った」を押せる (visit 軸でなく event 軸で判定)
+  const canMarkVisited = !!onVisited && !cancelled && !!schedule.visitDate &&
+    !schedule.visitedDate && eventStatus.kind !== 'past'
 
   const cardStyle: React.CSSProperties = {
     marginBottom: 10,
@@ -53,6 +58,28 @@ export default function EventCard({ schedule, status, eventStatus, to, onTagClic
         padding: '12px 16px',
         background: cardHeaderBg(eventStatus, cancelled, outOfRange),
       }}>
+        {canMarkVisited && (
+          <button
+            type="button"
+            onClick={e => {
+              e.preventDefault()
+              e.stopPropagation()
+              onVisited?.()
+            }}
+            aria-label="行ったことにする"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              padding: 6,
+              margin: '-6px 0 -6px -6px',
+              display: 'inline-flex',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <Checkbox checked={false} />
+          </button>
+        )}
         <div style={{
           flex: 1, minWidth: 0,
           fontSize: 16, fontWeight: 600, color: titleColor,
@@ -64,7 +91,27 @@ export default function EventCard({ schedule, status, eventStatus, to, onTagClic
         }}>
           {schedule.title}
         </div>
-        {!cancelled && schedule.visitDate ? (
+        {!cancelled && schedule.visitedDate ? (
+          <span
+            className="event-badge"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'baseline',
+              gap: 6,
+              padding: '5px 12px',
+              borderRadius: 999,
+              background: 'rgba(175, 82, 222, 0.16)',
+              color: '#af52de',
+              fontSize: 13,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>行った</span>
+            <span>{formatMD(schedule.visitedDate)}</span>
+          </span>
+        ) : !cancelled && schedule.visitDate ? (
           <span
             className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
             style={{

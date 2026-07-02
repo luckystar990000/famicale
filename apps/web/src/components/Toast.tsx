@@ -6,15 +6,25 @@ interface Action {
   onClick: () => void
 }
 
+// 役割ごとのトーン。 色はバッジと同じペア (開催中緑 / 中止赤) を使う。 ここ以外で toast の色を定義しない
+export type ToastTone = 'neutral' | 'success' | 'destructive'
+
+const TOAST_TONE: Record<ToastTone, { bg: string; color: string }> = {
+  neutral: { bg: 'rgba(245, 245, 245, 0.72)', color: 'var(--label)' },
+  success: { bg: 'rgba(209, 250, 229, 0.78)', color: '#065f46' },
+  destructive: { bg: 'rgba(254, 226, 226, 0.78)', color: '#991b1b' },
+}
+
 interface Props {
   open: boolean
   message: string
   durationMs?: number
   action?: Action
+  tone?: ToastTone
   onClose: () => void
 }
 
-export default function Toast({ open, message, durationMs = 1400, action, onClose }: Props) {
+export default function Toast({ open, message, durationMs = 1400, action, tone = 'neutral', onClose }: Props) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -59,8 +69,8 @@ export default function Toast({ open, message, durationMs = 1400, action, onClos
           gap: 4,
           padding: action ? '8px 8px 8px 20px' : '12px 20px',
           borderRadius: 999,
-          background: 'rgba(245, 245, 245, 0.72)',
-          color: 'var(--label)',
+          background: TOAST_TONE[tone].bg,
+          color: TOAST_TONE[tone].color,
           fontSize: 15,
           fontWeight: 500,
           backdropFilter: 'saturate(180%) blur(32px)',

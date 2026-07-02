@@ -6,7 +6,7 @@ import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
 import AlertDialog from '../components/AlertDialog'
 import Checkbox from '../components/Checkbox'
-import Toast from '../components/Toast'
+import Toast, { type ToastTone } from '../components/Toast'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
 import { classify, statusAccent, gaugeFill, isBirthdayEvent, isVisitOutOfRange, type EventStatus } from '../lib/event-status'
@@ -29,7 +29,7 @@ export default function EventDetailPage() {
   const [draftPostponeDate, setDraftPostponeDate] = useState('')
   const [eventPeriodOpen, setEventPeriodOpen] = useState(false)
   const [draftEventPeriodDate, setDraftEventPeriodDate] = useState('')
-  const [toast, setToast] = useState<{ message: string; action?: { label: string; onClick: () => void } } | null>(null)
+  const [toast, setToast] = useState<{ message: string; tone?: ToastTone; action?: { label: string; onClick: () => void } } | null>(null)
   const [visitOutOfRangeConfirm, setVisitOutOfRangeConfirm] = useState<string | null>(null)
   const [visitInputNonce, setVisitInputNonce] = useState(0)
 
@@ -86,6 +86,7 @@ export default function EventDetailPage() {
     setStatus(targetId, wasCancelled ? 'active' : 'cancelled')
     setToast({
       message: wasCancelled ? '再開しました' : '中止しました',
+      tone: wasCancelled ? 'success' : 'destructive',
       action: {
         label: '取り消す',
         onClick: () => setStatus(targetId, wasCancelled ? 'cancelled' : 'active'),
@@ -382,6 +383,37 @@ export default function EventDetailPage() {
             </span>
           </ListRow>
         )}
+        {schedule.visitedDate && (
+          <ListRow label="行った日">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input
+                key={`visited-${schedule.visitedDate}`}
+                type="date"
+                defaultValue={schedule.visitedDate}
+                onBlur={e => {
+                  const v = e.target.value
+                  if (v && v !== schedule.visitedDate) {
+                    update(schedule.id, { visitedDate: v })
+                  }
+                }}
+                style={{ ...inlineDateInputStyle, paddingRight: 32 }}
+              />
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  update(schedule.id, { visitedDate: undefined })
+                }}
+                aria-label="行った記録をクリア"
+                style={clearButtonStyle}
+              >
+                <X size={14} strokeWidth={3} color="#fff" />
+              </button>
+            </div>
+          </ListRow>
+        )}
         {visitOutOfRange && (
           <div className="no-divider" style={{
             marginTop: -10,
@@ -553,16 +585,18 @@ export default function EventDetailPage() {
         </ListRow>
       </ListSection>
 
-      <ListSection header="予定の編集">
-        <ListRow
-          onClick={openPostpone}
-          disabled={cancelled || toast !== null}
-        >
-          <span style={{ color: 'var(--tint)' }}>{schedule.visitDate ? '行く日をズラす' : 'イベントの日程をズラす'}</span>
-        </ListRow>
-      </ListSection>
+      {!schedule.visitedDate && (
+        <ListSection header="予定の編集">
+          <ListRow
+            onClick={openPostpone}
+            disabled={cancelled || toast !== null}
+          >
+            <span style={{ color: 'var(--tint)' }}>{schedule.visitDate ? '行く日をズラす' : 'イベントの日程をズラす'}</span>
+          </ListRow>
+        </ListSection>
+      )}
 
-      {schedule.visitDate && !cancelled && (
+      {schedule.visitDate && !schedule.visitedDate && !cancelled && (
         <ListSection>
           <ListRow
             onClick={openEventPeriod}
@@ -573,7 +607,7 @@ export default function EventDetailPage() {
         </ListSection>
       )}
 
-      {schedule.visitDate && !cancelled && (
+      {schedule.visitDate && !schedule.visitedDate && !cancelled && (
         <ListSection>
           <ListRow
             onClick={handleStopVisit}
@@ -661,6 +695,7 @@ export default function EventDetailPage() {
         message={toast?.message ?? ''}
         durationMs={3000}
         action={toast?.action}
+        tone={toast?.tone}
         onClose={() => setToast(null)}
       />
 
@@ -1012,6 +1047,11 @@ function heroText(status: EventStatus, cancelled: boolean, schedule: Schedule, o
 } {
   if (cancelled) {
     return { label: '', bigNumber: '中止', subtitle: '' }
+  }
+  if (schedule.visitedDate && status.kind === 'past') {
+    if (status.daysSinceEnd === 0) return { label: '', bigNumber: '今日', subtitle: '行きました' }
+    if (status.daysSinceEnd === 1) return { label: '', bigNumber: '昨日', subtitle: '行きました' }
+    return { label: '', bigNumber: String(status.daysSinceEnd), unit: '日前', subtitle: '行きました' }
   }
   if (outOfRange) {
     return {

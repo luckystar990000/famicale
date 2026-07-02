@@ -86,6 +86,7 @@ export interface ScheduleInput {
   endDate?: string
   endTime?: string
   visitDate?: string
+  visitedDate?: string
   tags?: string[]
   notes?: string
   checklist?: ChecklistItem[]
@@ -217,6 +218,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       endDate: 'endDate' in input ? (input.endDate?.trim() || undefined) : s.endDate,
       endTime: 'endTime' in input ? (input.endTime?.trim() || undefined) : s.endTime,
       visitDate: 'visitDate' in input ? (input.visitDate?.trim() || undefined) : s.visitDate,
+      visitedDate: 'visitedDate' in input ? (input.visitedDate?.trim() || undefined) : s.visitedDate,
       tags: 'tags' in input ? normalizeTags(input.tags) : s.tags,
       notes: 'notes' in input ? (input.notes?.trim() || undefined) : s.notes,
       checklist: 'checklist' in input ? normalizeChecklist(input.checklist) : s.checklist,

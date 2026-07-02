@@ -34,6 +34,13 @@ export function effectiveEnd(schedule: Schedule): string | undefined {
 
 export function classify(schedule: Schedule, today = new Date(), opts: { ignoreVisitDate?: boolean } = {}): EventStatus {
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+
+  // 「行った」記録があれば自分軸で終了扱い。 会期が続いていても past 側へ寄せる
+  // (並び/グルーピング軸 = ignoreVisitDate 側も含めて上書きする)
+  if (schedule.visitedDate) {
+    return { kind: 'past', daysSinceEnd: Math.max(0, diffDays(toDate(schedule.visitedDate), t)) }
+  }
+
   const startStr = opts.ignoreVisitDate ? schedule.startDate : effectiveStart(schedule)
   const endStr = opts.ignoreVisitDate ? schedule.endDate : effectiveEnd(schedule)
   const start = toDate(startStr)
@@ -121,7 +128,8 @@ export function cardHeaderBg(status: EventStatus, cancelled: boolean, outOfRange
 }
 
 export function isVisitOutOfRange(schedule: Schedule): boolean {
-  if (!schedule.visitDate) return false
+  // 行った記録があれば行く日は過去の話なので警告しない
+  if (!schedule.visitDate || schedule.visitedDate) return false
   if (schedule.endDate) return schedule.visitDate > schedule.endDate
   return schedule.visitDate > schedule.startDate
 }
