@@ -36,7 +36,6 @@ export interface ExtractedSchedule {
   title: string
   startDate: string
   endDate?: string
-  category?: string
 }
 
 export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6  // 1=月 ... 6=土

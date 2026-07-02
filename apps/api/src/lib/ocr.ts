@@ -16,7 +16,7 @@ function buildPrompt(intro: string): string {
   return [
     intro,
     '記載されている日付とイベント名を全て抽出し、以下のJSON配列形式のみで返してください。',
-    '[{"title":"イベント名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD|null","category":"school|lessons|family|external|null"}]',
+    '[{"title":"イベント名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD|null"}]',
     '・プリント右上の発行日・配布日は予定ではないので除外。',
     '・単日のイベントは endDate を null にしてください。',
     '・「5月25日〜7月20日」のような期間イベントは startDate と endDate を両方埋めてください。',
@@ -95,20 +95,21 @@ function parseSchedules(raw: unknown): ExtractedSchedule[] {
   const out: ExtractedSchedule[] = []
   for (const s of items) {
     if (!s || typeof s !== 'object') continue
-    const o = s as { title?: unknown; startDate?: unknown; endDate?: unknown; category?: unknown }
-    if (typeof o.title !== 'string' || typeof o.startDate !== 'string') continue
-    const endDate = typeof o.endDate === 'string' && o.endDate !== 'null' ? o.endDate : undefined
+    const o = s as { title?: unknown; startDate?: unknown; endDate?: unknown }
+    if (typeof o.title !== 'string' || !isIsoDate(o.startDate)) continue
+    // endDate が壊れていたり開始日より前ならイベントごと捨てず単日扱いに落とす
+    const endDate = isIsoDate(o.endDate) && o.endDate >= o.startDate ? o.endDate : undefined
     const key = `${o.title}|${o.startDate}|${endDate ?? ''}`
     if (seen.has(key)) continue
     seen.add(key)
-    out.push({
-      title: o.title,
-      startDate: o.startDate,
-      endDate,
-      category: typeof o.category === 'string' && o.category !== 'null' ? o.category : undefined,
-    })
+    out.push({ title: o.title, startDate: o.startDate, endDate })
   }
   return out
+}
+
+// モデル出力の日付が「5月25日」等の非 ISO 形式で来ると UI で Invalid Date になるため弾く
+function isIsoDate(v: unknown): v is string {
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
 }
 
 // stack-safe base64 (String.fromCharCode 引数上限を避けるため 8KB ずつチャンク処理)

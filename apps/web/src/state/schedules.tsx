@@ -19,7 +19,10 @@ function shift(offset: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// デモ用シードは開発ビルド限定。 本番で localStorage が消えた (ITP 7 日削除等) とき、
+// データ消失がデモイベントで覆い隠されるのを防ぐため空で始める。
 function defaultSchedules(): Schedule[] {
+  if (!import.meta.env.DEV) return []
   const now = new Date().toISOString()
   const make = (id: string, title: string, startOffset: number, endOffset?: number, tags?: string[]): Schedule => ({
     id, source: 'manual', status: 'active', title,

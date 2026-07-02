@@ -16,6 +16,9 @@ export const UNSUPPORTED_TYPE_ERROR = 'unsupported-type'
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 export const FILE_TOO_LARGE_ERROR = 'file-too-large'
 
+// 解析中の予期しない失敗。 詳細は console (wrangler tail) に出し、 クライアントにはコードだけ返す。
+export const EXTRACT_FAILED_ERROR = 'extract-failed'
+
 const documents = new Hono<{ Bindings: Bindings }>()
 
 documents.get('/', async (c) => {
@@ -36,8 +39,8 @@ documents.get('/:id', async (c) => {
 
 documents.post('/', async (c) => {
   const formData = await c.req.formData()
-  const file = (formData.get('file') ?? formData.get('image')) as File | null
-  if (!file) return c.json({ error: 'file field required' }, 400)
+  const file = formData.get('file') ?? formData.get('image')
+  if (!(file instanceof File)) return c.json({ error: 'file field required' }, 400)
 
   const contentType = file.type || 'application/octet-stream'
   const isPdf = contentType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -90,7 +93,7 @@ documents.post('/', async (c) => {
     await c.env.DB.prepare(
       "UPDATE documents SET status = 'error', updated_at = datetime('now') WHERE id = ?"
     ).bind(id).run()
-    return c.json({ id, status: 'error', error: String(err) }, 500)
+    return c.json({ id, status: 'error', error: EXTRACT_FAILED_ERROR }, 500)
   }
 })
 
