@@ -24,10 +24,10 @@ function ScrollManager() {
 import CountdownPage from './pages/CountdownPage'
 import EventNewPage from './pages/EventNewPage'
 import EventDetailPage from './pages/EventDetailPage'
-import EventEditPage from './pages/EventEditPage'
 import UploadPage from './pages/UploadPage'
 import TimetablesPage from './pages/TimetablesPage'
 import TimetablePage from './pages/TimetablePage'
+import LunchPage from './pages/LunchPage'
 import SharePage from './pages/SharePage'
 import ViewerPage from './pages/ViewerPage'
 
@@ -69,10 +69,10 @@ export default function App() {
           <Route path="/" element={<CountdownPage />} />
           <Route path="/events/new" element={<EventNewPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
-          <Route path="/events/:id/edit" element={<EventEditPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/timetables" element={<TimetablesPage />} />
           <Route path="/timetables/:id" element={<TimetablePage />} />
+          <Route path="/lunch" element={<LunchPage />} />
           <Route path="/share" element={<SharePage />} />
           <Route path="/v/:token" element={<ViewerPage />} />
         </Routes>

@@ -1,17 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Schedule } from '@famicale/shared'
+import { uuid } from '../lib/uuid'
 
 const STORAGE_KEY = 'famicale.schedules.v1'
 const TAGS_STORAGE_KEY = 'famicale.tags.v1'
-
-function uuid(): string {
-  // crypto.randomUUID() は secure context (HTTPS / localhost) でしか動かない
-  // LAN IP 経由の HTTP アクセスでは例外になるのでフォールバックを用意
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    try { return crypto.randomUUID() } catch { /* fall through */ }
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
-}
 
 function shift(offset: number): string {
   const d = new Date()

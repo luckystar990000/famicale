@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { SchedulesProvider } from './state/schedules'
 import { TimetablesProvider } from './state/timetables'
+import { LunchProvider } from './state/lunch'
 import { ShareProvider } from './state/share'
 
 createRoot(document.getElementById('root')!).render(
@@ -12,9 +13,11 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <SchedulesProvider>
         <TimetablesProvider>
-          <ShareProvider>
-            <App />
-          </ShareProvider>
+          <LunchProvider>
+            <ShareProvider>
+              <App />
+            </ShareProvider>
+          </LunchProvider>
         </TimetablesProvider>
       </SchedulesProvider>
     </BrowserRouter>

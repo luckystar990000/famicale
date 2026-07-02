@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Share2, X, Search } from 'lucide-react'
-import type { Schedule, DayOfWeek, Timetable } from '@famicale/shared'
+import type { Schedule, DayOfWeek } from '@famicale/shared'
 import { classify, isRecentlyEnded } from '../lib/event-status'
 import { TABS, inTab, sortForTab, emptyMessage, type TabId, type Item } from '../lib/event-filters'
 import { useSchedules } from '../state/schedules'
 import { useTimetables } from '../state/timetables'
+import { useLunch } from '../state/lunch'
 import AlertDialog from '../components/AlertDialog'
+import Chip from '../components/Chip'
 import EventCard from '../components/EventCard'
 import SegmentedControl from '../components/SegmentedControl'
 
@@ -135,7 +137,7 @@ export default function CountdownPage() {
         </button>
       </div>
 
-      <TodayTimetables />
+      <TodayBlock />
 
       <div style={{ padding: '0 16px 16px' }}>
         <SearchBar value={query} onChange={setQuery} />
@@ -266,13 +268,13 @@ function TagFilter({ tags, selected, usedTagSet, onChange, onLongPress }: {
       overflowX: 'auto',
       scrollbarWidth: 'none',
     }}>
-      <TagChip label="全て" active={!selected} used onClick={() => onChange(null)} />
+      <Chip label="全て" active={!selected} onClick={() => onChange(null)} />
       {tags.map(t => (
-        <TagChip
+        <Chip
           key={t}
           label={t}
           active={selected === t}
-          used={usedTagSet.has(t)}
+          muted={selected !== t && !usedTagSet.has(t)}
           onClick={() => onChange(selected === t ? null : t)}
           onLongPress={() => onLongPress(t)}
         />
@@ -281,83 +283,29 @@ function TagFilter({ tags, selected, usedTagSet, onChange, onLongPress }: {
   )
 }
 
-function TagChip({ label, active, used, onClick, onLongPress }: {
-  label: string
-  active: boolean
-  used: boolean
-  onClick: () => void
-  onLongPress?: () => void
-}) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const triggered = useRef(false)
-  const startPos = useRef<{ x: number; y: number } | null>(null)
-
-  function cancel() {
-    if (timer.current) {
-      clearTimeout(timer.current)
-      timer.current = null
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => { if (!triggered.current) onClick() }}
-      onPointerDown={onLongPress ? e => {
-        triggered.current = false
-        startPos.current = { x: e.clientX, y: e.clientY }
-        timer.current = setTimeout(() => {
-          triggered.current = true
-          onLongPress()
-        }, 600)
-      } : undefined}
-      onPointerMove={onLongPress ? e => {
-        if (!startPos.current) return
-        const dx = e.clientX - startPos.current.x
-        const dy = e.clientY - startPos.current.y
-        if (dx * dx + dy * dy > 64) cancel()
-      } : undefined}
-      onPointerUp={cancel}
-      onPointerCancel={cancel}
-      onPointerLeave={cancel}
-      style={{
-        flexShrink: 0,
-        padding: '5px 12px',
-        borderRadius: 999,
-        border: active ? 'none' : '0.5px solid var(--glass-border)',
-        background: active ? 'var(--tint)' : 'rgba(255, 255, 255, 0.55)',
-        backdropFilter: active ? 'none' : 'saturate(180%) blur(14px)',
-        WebkitBackdropFilter: active ? 'none' : 'saturate(180%) blur(14px)',
-        boxShadow: active ? 'none' : 'inset 0 1px 0 var(--glass-inner-hi)',
-        color: active ? '#fff' : 'var(--label)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-        opacity: !active && !used ? 0.55 : 1,
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-      }}
-    >
-      {label}
-    </button>
-  )
-}
-
-function TodayTimetables() {
+function TodayBlock() {
   const { items: timetables } = useTimetables()
+  const { tables } = useLunch()
   const today = new Date()
   const jsDay = today.getDay()
-  const dow = (jsDay === 0 ? null : jsDay) as DayOfWeek | null
 
-  if (dow === null) return null
+  if (jsDay === 0) return null
 
+  const dow = jsDay as DayOfWeek
   const owned = timetables
     .map(t => ({ tt: t, cells: t.cells.filter(c => c.dayOfWeek === dow).sort((a, b) => a.period - b.period) }))
     .filter(x => x.cells.length > 0)
 
-  if (owned.length === 0) return null
+  const todayISO = formatISODate(today)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowISO = formatISODate(tomorrow)
+  const multi = tables.length > 1
+  const tomorrowMenus = tables.filter(t => t.menus[tomorrowISO])
+  // 給食行は平日のみ常設 (献立入力への導線を兼ねる)。 土曜は時間割がある場合だけブロックを出す
+  const showLunchRows = jsDay <= 5
+
+  if (owned.length === 0 && !showLunchRows) return null
 
   return (
     <div style={{ padding: '0 16px 16px' }}>
@@ -379,11 +327,36 @@ function TodayTimetables() {
           alignItems: 'baseline',
           gap: 6,
         }}>
-          今日の時間割
+          今日
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {owned.map(({ tt, cells }) => (
-            <TodayRow key={tt.id} tt={tt} subjects={cells.map(c => c.subject)} />
+            <TodayRow
+              key={tt.id}
+              to={`/timetables/${tt.id}`}
+              label={tt.owner}
+              text={cells.map(c => c.subject).join(' · ')}
+            />
+          ))}
+          {showLunchRows && (tables.length === 0 ? (
+            <TodayRow to="/lunch" label="給食" />
+          ) : (
+            tables.map(t => (
+              <TodayRow
+                key={t.id}
+                to="/lunch"
+                label={multi ? t.name : '給食'}
+                text={t.menus[todayISO]}
+              />
+            ))
+          ))}
+          {tomorrowMenus.map(t => (
+            <TodayRow
+              key={`tomorrow-${t.id}`}
+              to="/lunch"
+              label={multi ? `明日·${t.name}` : '明日の給食'}
+              text={t.menus[tomorrowISO]}
+            />
           ))}
         </div>
       </div>
@@ -391,31 +364,35 @@ function TodayTimetables() {
   )
 }
 
-function TodayRow({ tt, subjects }: { tt: Timetable; subjects: string[] }) {
+function TodayRow({ to, label, text }: { to: string; label: string; text?: string }) {
   return (
     <Link
-      to={`/timetables/${tt.id}`}
+      to={to}
       style={{
         display: 'flex', alignItems: 'baseline', gap: 8,
         textDecoration: 'none', color: 'inherit',
       }}
     >
       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--label)', flexShrink: 0 }}>
-        {tt.owner}
+        {label}
       </span>
       <span style={{
         fontSize: 14,
-        color: 'var(--label-secondary)',
+        color: text ? 'var(--label-secondary)' : 'var(--label-tertiary)',
         flex: 1,
         minWidth: 0,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
       }}>
-        {subjects.join(' · ')}
+        {text ?? '未入力'}
       </span>
     </Link>
   )
+}
+
+function formatISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {

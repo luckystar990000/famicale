@@ -1,14 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Timetable, TimetableCell, ScheduleSource } from '@famicale/shared'
+import { uuid } from '../lib/uuid'
 
 const STORAGE_KEY = 'famicale.timetables.v1'
-
-function uuid(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    try { return crypto.randomUUID() } catch { /* fall through */ }
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
-}
 
 function load(): Timetable[] {
   try {
