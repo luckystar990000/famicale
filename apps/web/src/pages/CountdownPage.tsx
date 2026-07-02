@@ -1,70 +1,14 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Share2, X, Search } from 'lucide-react'
-import type { Schedule } from '@famicale/shared'
-import {
-  classify, statusBadge, statusAccent, gaugeFill, isRecentlyEnded,
-  effectiveStart, effectiveEnd, cardHeaderBg, isVisitOutOfRange,
-  type EventStatus,
-} from '../lib/event-status'
+import type { Schedule, DayOfWeek, Timetable } from '@famicale/shared'
+import { classify, isRecentlyEnded } from '../lib/event-status'
+import { TABS, inTab, sortForTab, emptyMessage, type TabId, type Item } from '../lib/event-filters'
 import { useSchedules } from '../state/schedules'
 import { useTimetables } from '../state/timetables'
 import AlertDialog from '../components/AlertDialog'
-import type { DayOfWeek, Timetable } from '@famicale/shared'
-
-type TabId = 'all' | 'ongoing' | 'ending' | 'upcoming' | 'starting'
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'all', label: '全て' },
-  { id: 'ongoing', label: '開催中' },
-  { id: 'ending', label: '終わりそう' },
-  { id: 'upcoming', label: 'まだ' },
-  { id: 'starting', label: '始まりそう' },
-]
-
-type Item = { schedule: Schedule; status: EventStatus; eventStatus: EventStatus }
-
-function inTab(status: EventStatus, tab: TabId): boolean {
-  const kind = status.kind
-  if (tab === 'all') return kind !== 'past' || isRecentlyEnded(status)
-  if (tab === 'ongoing') return kind === 'ongoing-today' || kind === 'ongoing' || kind === 'ending-soon'
-  if (tab === 'upcoming') return kind === 'upcoming-soon' || kind === 'upcoming'
-  if (tab === 'ending') return kind === 'ending-soon'
-  if (tab === 'starting') return kind === 'upcoming-soon'
-  return false
-}
-
-function statusRank(kind: EventStatus['kind']): number {
-  switch (kind) {
-    case 'ongoing-today': return 0
-    case 'ending-soon': return 1
-    case 'ongoing': return 2
-    case 'upcoming-soon': return 3
-    case 'upcoming': return 4
-    case 'past': return 5
-  }
-}
-
-function sortForTab(items: Item[], tab: TabId): Item[] {
-  const arr = [...items]
-  if (tab === 'all') {
-    arr.sort((a, b) => {
-      const r = statusRank(a.eventStatus.kind) - statusRank(b.eventStatus.kind)
-      if (r !== 0) return r
-      const cmp = a.schedule.startDate.localeCompare(b.schedule.startDate)
-      return a.eventStatus.kind === 'past' ? -cmp : cmp
-    })
-  } else if (tab === 'ongoing' || tab === 'ending') {
-    arr.sort((a, b) => {
-      const ae = a.schedule.endDate ?? a.schedule.startDate
-      const be = b.schedule.endDate ?? b.schedule.startDate
-      return ae.localeCompare(be)
-    })
-  } else if (tab === 'upcoming' || tab === 'starting') {
-    arr.sort((a, b) => a.schedule.startDate.localeCompare(b.schedule.startDate))
-  }
-  return arr
-}
+import EventCard from '../components/EventCard'
+import SegmentedControl from '../components/SegmentedControl'
 
 export default function CountdownPage() {
   const { items, knownTags, deleteTag } = useSchedules()
@@ -267,6 +211,7 @@ export default function CountdownPage() {
             schedule={schedule}
             status={status}
             eventStatus={eventStatus}
+            to={`/events/${schedule.id}`}
             onTagClick={setSelectedTag}
           />
         ))}
@@ -293,6 +238,7 @@ export default function CountdownPage() {
                     schedule={schedule}
                     status={status}
                     eventStatus={eventStatus}
+                    to={`/events/${schedule.id}`}
                     onTagClick={setSelectedTag}
                   />
                 ))}
@@ -302,16 +248,6 @@ export default function CountdownPage() {
       </div>
     </>
   )
-}
-
-function emptyMessage(tab: TabId): string {
-  switch (tab) {
-    case 'all': return '直近の予定はありません'
-    case 'ongoing': return '今開催中のイベントはありません'
-    case 'upcoming': return 'これから始まる予定はありません'
-    case 'ending': return 'もうすぐ終わるイベントはありません'
-    case 'starting': return 'もうすぐ始まる予定はありません'
-  }
 }
 
 function TagFilter({ tags, selected, usedTagSet, onChange, onLongPress }: {
@@ -536,307 +472,4 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
       )}
     </div>
   )
-}
-
-function SegmentedControl({ value, onChange, counts }: {
-  value: TabId
-  onChange: (v: TabId) => void
-  counts: Record<TabId, number>
-}) {
-  return (
-    <div style={{
-      display: 'flex',
-      background: 'rgba(255, 255, 255, 0.35)',
-      backdropFilter: 'saturate(160%) blur(18px)',
-      WebkitBackdropFilter: 'saturate(160%) blur(18px)',
-      border: '0.5px solid rgba(255, 255, 255, 0.55)',
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55)',
-      borderRadius: 27,
-      padding: 3,
-      marginBottom: 14,
-      gap: 1,
-      overflowX: 'auto',
-      scrollbarWidth: 'none',
-    }}>
-      {TABS.map(({ id, label }) => {
-        const active = value === id
-        return (
-          <button
-            key={id}
-            onClick={() => onChange(id)}
-            style={{
-              flex: '0 0 auto',
-              padding: '6px 11px',
-              border: 'none',
-              borderRadius: 27,
-              background: active ? 'var(--tint)' : 'transparent',
-              color: active ? '#fff' : 'var(--label)',
-              fontWeight: active ? 600 : 500,
-              fontSize: 13,
-              cursor: 'pointer',
-              boxShadow: active ? '0 1px 4px rgba(0, 122, 255, 0.25)' : 'none',
-              transition: 'background 0.15s',
-              whiteSpace: 'nowrap',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <span>{label}</span>
-            {counts[id] > 0 && (
-              <span style={{
-                fontSize: 11, fontWeight: 500,
-                color: active ? 'rgba(255, 255, 255, 0.85)' : 'var(--label-secondary)',
-                fontVariantNumeric: 'tabular-nums',
-              }}>{counts[id]}</span>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function EventCard({ schedule, status, eventStatus, onTagClick }: {
-  schedule: Schedule
-  status: EventStatus
-  eventStatus: EventStatus
-  onTagClick: (tag: string) => void
-}) {
-  const cancelled = schedule.status === 'cancelled'
-  const outOfRange = isVisitOutOfRange(schedule)
-  const badge = statusBadge(status, schedule)
-  const accent = cancelled
-    ? '#9ca3af'
-    : outOfRange
-      ? '#ff3b30'
-      : status.kind === 'past'
-        ? '#9ca3af'
-        : statusAccent(status)
-  const gauge = cancelled ? null : gaugeFill(schedule, status)
-  const isOngoing = status.kind === 'ongoing' || status.kind === 'ending-soon' || status.kind === 'ongoing-today'
-  const dateText = formatDateLabel(schedule, status)
-  const isSoon = !cancelled && (status.kind === 'upcoming-soon' || status.kind === 'ending-soon')
-  const isPast = !cancelled && status.kind === 'past'
-  const titleColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
-  const dateColor = isPast ? 'var(--label-secondary)' : 'var(--label)'
-  const subTextColor = isPast ? 'var(--label-tertiary)' : 'var(--label-secondary)'
-
-  return (
-    <Link
-      to={`/events/${schedule.id}`}
-      className="press-feedback"
-      style={{
-        display: 'block', textDecoration: 'none', color: 'inherit',
-        marginBottom: 10,
-        background: 'var(--bg-card)',
-        backdropFilter: 'saturate(160%) blur(22px)',
-        WebkitBackdropFilter: 'saturate(160%) blur(22px)',
-        border: outOfRange ? '1.5px solid rgba(255, 59, 48, 0.6)' : '0.5px solid var(--glass-border)',
-        boxShadow: 'inset 0 1px 0 var(--glass-inner-hi), 0 6px 18px rgba(0, 0, 0, 0.06)',
-        borderRadius: 27,
-        overflow: 'hidden',
-        opacity: cancelled ? 0.55 : 1,
-      }}
-    >
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 8,
-        padding: '12px 16px',
-        background: cardHeaderBg(eventStatus, cancelled, outOfRange),
-      }}>
-        <div style={{
-          flex: 1, minWidth: 0,
-          fontSize: 16, fontWeight: 600, color: titleColor,
-          textDecoration: cancelled ? 'line-through' : 'none',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          lineHeight: 1.3,
-        }}>
-          {schedule.title}
-        </div>
-        {!cancelled && schedule.visitDate ? (
-          <span
-            className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'baseline',
-              gap: 6,
-              padding: '5px 12px',
-              borderRadius: 999,
-              background: outOfRange ? 'rgba(255, 59, 48, 0.16)' : 'rgba(175, 82, 222, 0.16)',
-              color: outOfRange ? 'var(--destructive)' : '#af52de',
-              fontSize: 13,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>行く日</span>
-            <span>{formatMD(schedule.visitDate)}</span>
-            {outOfRange ? (
-              <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>終了後</span>
-            ) : countdownTail(status) && (
-              <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>{countdownTail(status)}</span>
-            )}
-          </span>
-        ) : (
-          <div
-            className={`event-badge${isSoon ? ' badge-pulse' : ''}`}
-            style={{
-              padding: '4px 10px', borderRadius: 999,
-              background: cancelled ? '#fee2e2' : badge.bg,
-              color: cancelled ? '#991b1b' : badge.color,
-              fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            {cancelled ? '中止' : badge.label}
-          </div>
-        )}
-      </div>
-
-      {gauge ? (
-        <div
-          role="progressbar"
-          aria-label={isOngoing ? '残り期間' : '開始まで'}
-          aria-valuenow={Math.round(gauge.fill * 100)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          style={{ height: 4, background: 'rgba(0,0,0,0.05)', position: 'relative' }}
-        >
-          <div
-            className="gauge-flow"
-            style={{
-              position: 'absolute',
-              [gauge.fillFrom]: 0,
-              top: 0, bottom: 0,
-              width: `${gauge.fill * 100}%`,
-              backgroundColor: accent,
-              transition: 'width 0.3s ease',
-            }}
-          />
-        </div>
-      ) : (
-        <div style={{ height: 4, background: 'rgba(0,0,0,0.05)' }} aria-hidden />
-      )}
-
-      {/* Body */}
-      <div style={{
-        padding: '10px 16px',
-        background: outOfRange ? 'rgba(255, 59, 48, 0.04)' : undefined,
-      }}>
-        <div style={{
-          fontSize: 14, color: dateColor, fontWeight: 500,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {schedule.visitDate
-            ? (schedule.endDate
-              ? `${formatMD(schedule.startDate)} 〜 ${formatMD(schedule.endDate)}`
-              : formatMD(schedule.startDate))
-            : dateText}
-          {formatTimeRange(schedule.startTime, schedule.endTime) && (
-            <span style={{ color: 'var(--label-tertiary)', marginLeft: 6, fontWeight: 400 }}>
-              {formatTimeRange(schedule.startTime, schedule.endTime)}
-            </span>
-          )}
-        </div>
-        {schedule.notes && (
-          <div style={{
-            fontSize: 13,
-            color: subTextColor,
-            marginTop: 6,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            whiteSpace: 'pre-wrap',
-          }}>
-            {schedule.notes}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      {schedule.tags && schedule.tags.length > 0 && (
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 4,
-          padding: '0 16px 12px',
-          background: outOfRange ? 'rgba(255, 59, 48, 0.04)' : undefined,
-        }}>
-          {schedule.tags.map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onTagClick(t)
-              }}
-              style={{ ...cardTagChipStyle, border: 'none', cursor: 'pointer' }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      )}
-    </Link>
-  )
-}
-
-const cardTagChipStyle: React.CSSProperties = {
-  padding: '2px 8px',
-  borderRadius: 999,
-  background: 'rgba(0, 122, 255, 0.12)',
-  color: 'var(--tint)',
-  fontSize: 11,
-  fontWeight: 500,
-}
-
-function countdownTail(status: EventStatus): string {
-  switch (status.kind) {
-    case 'upcoming-soon':
-    case 'upcoming':
-      return `あと${status.daysUntilStart}日`
-    case 'ongoing-today':
-      return '今日'
-    case 'past':
-      if (status.daysSinceEnd === 1) return '昨日'
-      return `${status.daysSinceEnd}日前`
-    case 'ongoing':
-    case 'ending-soon':
-      return ''
-  }
-}
-
-function formatDateLabel(schedule: Schedule, status: EventStatus): string {
-  if (schedule.status === 'cancelled') {
-    if (!schedule.endDate || schedule.endDate === schedule.startDate) return formatMD(schedule.startDate)
-    return `${formatMD(schedule.startDate)} 〜 ${formatMD(schedule.endDate)}`
-  }
-  if (schedule.visitDate) return formatMD(schedule.visitDate)
-  if (status.kind === 'upcoming-soon') return `${formatMD(schedule.startDate)} 開催`
-  if (status.kind === 'ending-soon' && schedule.endDate) return `${formatMD(schedule.endDate)} 終了`
-  if (!schedule.endDate || schedule.endDate === schedule.startDate) {
-    return formatMD(schedule.startDate)
-  }
-  return `${formatMD(schedule.startDate)} 〜 ${formatMD(schedule.endDate)}`
-}
-
-function formatMD(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('ja-JP', {
-    month: 'numeric', day: 'numeric', weekday: 'short'
-  })
-}
-
-function formatTimeRange(start?: string, end?: string): string {
-  if (!start && !end) return ''
-  if (start && end) return `(${start}〜${end})`
-  if (start) return `(${start}〜)`
-  return `(〜${end})`
 }
