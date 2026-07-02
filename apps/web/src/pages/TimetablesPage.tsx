@@ -32,7 +32,7 @@ export default function TimetablesPage() {
     <>
       <NavBar
         title="時間割"
-        rightAction={{ label: '追加', primary: true, onClick: openNew }}
+        rightAction={{ label: '追加', icon: 'plus', onClick: openNew }}
       />
 
       <div style={{ paddingTop: 16 }}>

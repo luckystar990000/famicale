@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ChevronLeft, X, Check } from 'lucide-react'
+import { ChevronLeft, X, Check, Pencil, Plus } from 'lucide-react'
 
 interface BackProps {
   to?: string
@@ -13,8 +13,11 @@ interface ActionProps {
   primary?: boolean
   destructive?: boolean
   disabled?: boolean
-  icon?: 'check'
+  icon?: 'check' | 'pencil' | 'plus'
 }
+
+// check 以外のアイコンアクションは戻るボタンと同系のガラス円形で描く
+const ACTION_ICONS = { pencil: Pencil, plus: Plus } as const
 
 interface Props {
   title?: string
@@ -114,6 +117,23 @@ export default function NavBar({ title, back, rightAction, inline }: Props) {
                   strokeWidth={3}
                   color={rightAction.disabled ? 'var(--label-tertiary)' : '#fff'}
                 />
+              </button>
+            ) : rightAction.icon ? (
+              <button
+                type="button"
+                onClick={rightAction.onClick}
+                disabled={rightAction.disabled}
+                aria-label={rightAction.label}
+                style={{
+                  ...circleBtn,
+                  opacity: rightAction.disabled ? 0.55 : 1,
+                  cursor: rightAction.disabled ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {(() => {
+                  const Icon = ACTION_ICONS[rightAction.icon]
+                  return <Icon size={rightAction.icon === 'plus' ? 22 : 19} strokeWidth={2.2} color="var(--label)" />
+                })()}
               </button>
             ) : (
               <button

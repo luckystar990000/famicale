@@ -65,7 +65,7 @@ export default function LunchPage() {
       <NavBar
         title="給食の献立"
         back={{ to: '/' }}
-        rightAction={selected ? { label: '編集', onClick: () => openManage(selected.id) } : undefined}
+        rightAction={selected ? { label: '編集', icon: 'pencil', onClick: () => openManage(selected.id) } : undefined}
       />
 
       <div style={{ paddingTop: 8 }}>
