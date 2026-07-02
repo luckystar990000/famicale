@@ -1,16 +1,17 @@
 import { useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
-import type { Schedule } from '@famicale/shared'
+import type { Schedule, ChecklistItem } from '@famicale/shared'
 import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
 import AlertDialog from '../components/AlertDialog'
+import Checkbox from '../components/Checkbox'
 import Toast from '../components/Toast'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
 import { classify, statusAccent, gaugeFill, isBirthdayEvent, isVisitOutOfRange, type EventStatus } from '../lib/event-status'
 
-type EditField = 'title' | 'tags' | 'notes' | null
+type EditField = 'title' | 'tags' | 'notes' | 'checklist' | null
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -21,6 +22,7 @@ export default function EventDetailPage() {
   const [editing, setEditing] = useState<EditField>(null)
   const [draftText, setDraftText] = useState('')
   const [draftTags, setDraftTags] = useState<string[]>([])
+  const [draftChecklist, setDraftChecklist] = useState<ChecklistItem[]>([])
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [endDateClearConfirmOpen, setEndDateClearConfirmOpen] = useState(false)
   const [postponeOpen, setPostponeOpen] = useState(false)
@@ -125,11 +127,22 @@ export default function EventDetailPage() {
     setEventPeriodOpen(false)
   }
 
+  function toggleChecklistItem(name: string) {
+    if (!schedule?.checklist) return
+    update(schedule.id, {
+      checklist: schedule.checklist.map(it =>
+        it.name === name ? { ...it, checked: !it.checked } : it
+      ),
+    })
+  }
+
   function openEdit(field: Exclude<EditField, null>) {
     if (!schedule) return
     setEditing(field)
     if (field === 'tags') {
       setDraftTags(schedule.tags ?? [])
+    } else if (field === 'checklist') {
+      setDraftChecklist(schedule.checklist ?? [])
     } else {
       const initial =
         field === 'title' ? schedule.title :
@@ -151,6 +164,9 @@ export default function EventDetailPage() {
       case 'tags':
         update(schedule.id, { tags: draftTags })
         break
+      case 'checklist':
+        update(schedule.id, { checklist: draftChecklist })
+        break
     }
     setEditing(null)
   }
@@ -158,7 +174,8 @@ export default function EventDetailPage() {
   const sheetTitle =
     editing === 'title' ? 'イベント名' :
     editing === 'tags' ? 'タグ' :
-    editing === 'notes' ? 'メモ' : ''
+    editing === 'notes' ? 'メモ' :
+    editing === 'checklist' ? '持ち物' : ''
 
   const confirmDisabled = editing === 'title' && draftText.trim() === ''
 
@@ -496,6 +513,31 @@ export default function EventDetailPage() {
         </ListRow>
       </ListSection>
 
+      <ListSection header="持ち物">
+        {schedule.checklist?.map(item => (
+          <ListRow key={item.name} onClick={() => toggleChecklistItem(item.name)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <Checkbox checked={item.checked} />
+              <span style={{
+                fontSize: 17,
+                color: item.checked ? 'var(--label-tertiary)' : 'var(--label)',
+                textDecoration: item.checked ? 'line-through' : 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {item.name}
+              </span>
+            </div>
+          </ListRow>
+        ))}
+        <ListRow onClick={() => openEdit('checklist')}>
+          <span style={{ color: 'var(--tint)', fontWeight: 500 }}>
+            {schedule.checklist?.length ? '持ち物を編集' : '+ 持ち物を追加'}
+          </span>
+        </ListRow>
+      </ListSection>
+
       <ListSection header="メモ">
         <ListRow align="vertical" onClick={() => openEdit('notes')}>
           {schedule.notes ? (
@@ -594,6 +636,12 @@ export default function EventDetailPage() {
             autoFocus
             rows={8}
             style={{ ...sheetInputStyle, resize: 'none', minHeight: 160 }}
+          />
+        )}
+        {editing === 'checklist' && (
+          <ChecklistInputInSheet
+            value={draftChecklist}
+            onChange={setDraftChecklist}
           />
         )}
       </Sheet>
@@ -738,6 +786,78 @@ export default function EventDetailPage() {
         </div>
       </Sheet>
     </>
+  )
+}
+
+function ChecklistInputInSheet({ value, onChange }: {
+  value: ChecklistItem[]
+  onChange: (items: ChecklistItem[]) => void
+}) {
+  const [input, setInput] = useState('')
+
+  function addItem(t: string) {
+    const trimmed = t.trim()
+    if (!trimmed || value.some(it => it.name === trimmed)) { setInput(''); return }
+    onChange([...value, { name: trimmed, checked: false }])
+    setInput('')
+  }
+
+  function handleKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      addItem(input)
+    }
+  }
+
+  return (
+    <div>
+      {value.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          {value.map(it => (
+            <span key={it.name} style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 6px 4px 10px',
+              borderRadius: 999,
+              background: 'rgba(0, 122, 255, 0.12)',
+              color: 'var(--tint)',
+              fontSize: 13,
+              fontWeight: 500,
+            }}>
+              {it.name}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter(x => x.name !== it.name))}
+                aria-label={`${it.name} を削除`}
+                style={{
+                  width: 18, height: 18, borderRadius: 999,
+                  background: 'rgba(120, 120, 128, 0.18)',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                <X size={11} strokeWidth={3} color="var(--label-secondary)" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        type="text"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={handleKey}
+        onBlur={() => input.trim() && addItem(input)}
+        placeholder="持ち物を追加 (Enter or , で確定)"
+        autoFocus={value.length === 0}
+        style={sheetInputStyle}
+      />
+    </div>
   )
 }
 

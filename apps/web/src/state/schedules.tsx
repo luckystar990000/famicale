@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Schedule } from '@famicale/shared'
+import type { Schedule, ChecklistItem } from '@famicale/shared'
 import { uuid } from '../lib/uuid'
 
 const STORAGE_KEY = 'famicale.schedules.v1'
@@ -88,7 +88,21 @@ export interface ScheduleInput {
   visitDate?: string
   tags?: string[]
   notes?: string
+  checklist?: ChecklistItem[]
   postponedFrom?: string
+}
+
+function normalizeChecklist(items?: ChecklistItem[]): ChecklistItem[] | undefined {
+  if (!items) return undefined
+  const seen = new Set<string>()
+  const cleaned = items
+    .map(it => ({ name: it.name.trim(), checked: it.checked }))
+    .filter(it => {
+      if (it.name === '' || seen.has(it.name)) return false
+      seen.add(it.name)
+      return true
+    })
+  return cleaned.length > 0 ? cleaned : undefined
 }
 
 function normalizeTags(tags?: string[]): string[] | undefined {
@@ -205,6 +219,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
       visitDate: 'visitDate' in input ? (input.visitDate?.trim() || undefined) : s.visitDate,
       tags: 'tags' in input ? normalizeTags(input.tags) : s.tags,
       notes: 'notes' in input ? (input.notes?.trim() || undefined) : s.notes,
+      checklist: 'checklist' in input ? normalizeChecklist(input.checklist) : s.checklist,
       postponedFrom: 'postponedFrom' in input ? input.postponedFrom : s.postponedFrom,
       updatedAt: new Date().toISOString(),
     } : s))

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Check, FileText, FlaskConical } from 'lucide-react'
+import { Plus, FileText, FlaskConical } from 'lucide-react'
 import type { ExtractedSchedule } from '@famicale/shared'
 import NavBar from '../components/NavBar'
+import Checkbox from '../components/Checkbox'
 import { ListSection, ListRow } from '../components/List'
 import { useSchedules } from '../state/schedules'
 import { uploadDocument, isOcrMock, setOcrMock } from '../api/client'
@@ -312,20 +313,6 @@ function ReviewList({ extracted, selected, onToggle, onCancel, onAdd }: {
           {selected.size} 件を追加
         </button>
       </div>
-    </div>
-  )
-}
-
-function Checkbox({ checked }: { checked: boolean }) {
-  return (
-    <div style={{
-      width: 22, height: 22, borderRadius: 999,
-      border: `2px solid ${checked ? 'var(--tint)' : 'rgba(60,60,67,0.3)'}`,
-      background: checked ? 'var(--tint)' : 'transparent',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0,
-    }}>
-      {checked && <Check size={13} strokeWidth={3.5} color="#fff" />}
     </div>
   )
 }

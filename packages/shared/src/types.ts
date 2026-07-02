@@ -13,6 +13,11 @@ export interface Document {
   updatedAt: string
 }
 
+export interface ChecklistItem {
+  name: string
+  checked: boolean
+}
+
 export interface Schedule {
   id: string
   documentId?: string
@@ -28,6 +33,7 @@ export interface Schedule {
   category?: string
   tags?: string[]
   notes?: string
+  checklist?: ChecklistItem[]
   createdAt: string
   updatedAt: string
 }

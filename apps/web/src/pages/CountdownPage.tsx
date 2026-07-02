@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Share2, X, Search } from 'lucide-react'
 import type { Schedule, DayOfWeek } from '@famicale/shared'
-import { classify, isRecentlyEnded } from '../lib/event-status'
+import { classify, effectiveStart, isRecentlyEnded } from '../lib/event-status'
 import { TABS, inTab, sortForTab, emptyMessage, type TabId, type Item } from '../lib/event-filters'
 import { useSchedules } from '../state/schedules'
 import { useTimetables } from '../state/timetables'
@@ -286,13 +286,12 @@ function TagFilter({ tags, selected, usedTagSet, onChange, onLongPress }: {
 function TodayBlock() {
   const { items: timetables } = useTimetables()
   const { tables } = useLunch()
+  const { items: schedules } = useSchedules()
   const today = new Date()
   const jsDay = today.getDay()
 
-  if (jsDay === 0) return null
-
-  const dow = jsDay as DayOfWeek
-  const owned = timetables
+  const dow = jsDay === 0 ? null : jsDay as DayOfWeek
+  const owned = dow === null ? [] : timetables
     .map(t => ({ tt: t, cells: t.cells.filter(c => c.dayOfWeek === dow).sort((a, b) => a.period - b.period) }))
     .filter(x => x.cells.length > 0)
 
@@ -302,10 +301,14 @@ function TodayBlock() {
   const tomorrowISO = formatISODate(tomorrow)
   const multi = tables.length > 1
   const tomorrowMenus = tables.filter(t => t.menus[tomorrowISO])
-  // 給食行は平日のみ常設 (献立入力への導線を兼ねる)。 土曜は時間割がある場合だけブロックを出す
-  const showLunchRows = jsDay <= 5
+  // 明日始まる (行く) イベントの持ち物 = 前日準備の出しどころ
+  const prep = schedules.filter(s =>
+    s.status !== 'cancelled' && s.checklist?.length && effectiveStart(s) === tomorrowISO
+  )
+  // 給食行は平日のみ常設 (献立入力への導線を兼ねる)
+  const showLunchRows = jsDay >= 1 && jsDay <= 5
 
-  if (owned.length === 0 && !showLunchRows) return null
+  if (owned.length === 0 && !showLunchRows && tomorrowMenus.length === 0 && prep.length === 0) return null
 
   return (
     <div style={{ padding: '0 16px 16px' }}>
@@ -358,6 +361,17 @@ function TodayBlock() {
               text={t.menus[tomorrowISO]}
             />
           ))}
+          {prep.map(s => {
+            const remaining = (s.checklist ?? []).filter(it => !it.checked).length
+            return (
+              <TodayRow
+                key={`prep-${s.id}`}
+                to={`/events/${s.id}`}
+                label={`明日·${s.title}`}
+                text={remaining > 0 ? `持ち物 残り${remaining}点` : '持ち物 準備OK'}
+              />
+            )
+          })}
         </div>
       </div>
     </div>
@@ -373,7 +387,14 @@ function TodayRow({ to, label, text }: { to: string; label: string; text?: strin
         textDecoration: 'none', color: 'inherit',
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--label)', flexShrink: 0 }}>
+      <span style={{
+        fontSize: 14, fontWeight: 600, color: 'var(--label)',
+        flexShrink: 0,
+        maxWidth: '55%',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}>
         {label}
       </span>
       <span style={{
