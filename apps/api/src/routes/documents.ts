@@ -39,7 +39,7 @@ documents.get('/:id', async (c) => {
 
 documents.post('/', async (c) => {
   const formData = await c.req.formData()
-  const file = formData.get('file') ?? formData.get('image')
+  const file: unknown = formData.get('file') ?? formData.get('image')
   if (!(file instanceof File)) return c.json({ error: 'file field required' }, 400)
 
   const contentType = file.type || 'application/octet-stream'
