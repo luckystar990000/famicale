@@ -17,46 +17,43 @@ export function setOcrMock(on: boolean): void {
   localStorage.setItem(OCR_MOCK_KEY, on ? '1' : '0')
 }
 
-export async function getSchedules(): Promise<Schedule[]> {
+// --- schedules CRUD ---
+// PUT は全置換契約。 create/update とも「完全な Schedule オブジェクト」を送る
+// (id は web 側で生成。 サーバは受け取った id をそのまま使う → 楽観的更新が成立する)。
+
+export async function listSchedules(): Promise<Schedule[]> {
   const res = await fetch(`${BASE}/schedules`)
+  if (!res.ok) throw new Error(`GET /schedules failed: ${res.status}`)
   const data = await res.json()
   return Array.isArray(data) ? data : []
 }
 
-export async function createSchedule(data: {
-  title: string
-  startDate: string
-  endDate?: string | null
-  category?: string | null
-  notes?: string | null
-}): Promise<Schedule> {
+export async function createSchedule(schedule: Schedule): Promise<Schedule> {
   const res = await fetch(`${BASE}/schedules`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify(schedule),
   })
+  if (!res.ok) throw new Error(`POST /schedules failed: ${res.status}`)
   return res.json()
 }
 
-export async function updateSchedule(id: string, data: {
-  title?: string
-  startDate?: string
-  endDate?: string | null
-  category?: string | null
-  notes?: string | null
-}): Promise<Schedule> {
-  const res = await fetch(`${BASE}/schedules/${id}`, {
+export async function updateSchedule(schedule: Schedule): Promise<Schedule> {
+  const res = await fetch(`${BASE}/schedules/${schedule.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify(schedule),
   })
+  if (!res.ok) throw new Error(`PUT /schedules/${schedule.id} failed: ${res.status}`)
   return res.json()
 }
 
-export async function deleteSchedule(id: string) {
+export async function removeSchedule(id: string): Promise<void> {
   const res = await fetch(`${BASE}/schedules/${id}`, { method: 'DELETE' })
-  return res.json()
+  if (!res.ok) throw new Error(`DELETE /schedules/${id} failed: ${res.status}`)
 }
+
+// --- OCR (documents) ---
 
 export interface UploadDocumentResult {
   id: string
