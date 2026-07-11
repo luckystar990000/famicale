@@ -1,7 +1,9 @@
 import type { Schedule, ExtractedSchedule } from '@famicale/shared'
 import { mockExtractSchedules } from '../lib/mock-ocr'
 
-const BASE = '/api'
+// dev は Vite proxy 経由の同一オリジン `/api`。 本番は web(Pages) と api(Workers) が
+// 別ドメインなので、 ビルド時に VITE_API_BASE=https://<worker>/api を注入して絶対 URL で叩く。
+const BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
 // OCR を mock で動かすか実 API で叩くかの切替。 開発中に毎回 Workers AI (Neurons) を
 // 消費しないため。 本番ビルドでは import.meta.env.DEV が false なので常に実 API。
