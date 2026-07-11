@@ -67,8 +67,18 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
 - **妻のテスト feedback ループ**: 出先で確認続行中。 「読まれない」 系の microcopy を「アフォーダンス + 事後エラーモーダル」 で潰すフェーズ。 新たに指摘出たら `[[feedback_dont_rely_on_microcopy]]` の原則で都度対応
 - **タスク優先度** (2026-07-02 更新。 OCR 実 API / PDF / 献立 / 持ち物フェーズ 1 は完了済み):
 
-  **最優先 (次の大きいマイルストーン)**:
-  - **D1 移行 + Pages 本番デプロイ**: localStorage → D1 で ITP 7 日問題を根本解消。 共有 URL のサーバ化 (現状 token も予定データも端末ローカルなので、 実は同一ブラウザ内でしか成立しない)、 持ち物の前日 Push 通知の土台もここ。 あわせて schedules API の地雷 (PUT COALESCE / スキーマ 0005: visit_date・時刻・postponed_from / 認証 / CORS 絞り) をまとめて処理。 詳細はメモリ [[project-famicale-deferred-refactors]]
+  **完了 (2026-07-11): 本番デプロイ (方針A = localStorage のまま公開)**:
+  - web: https://famicale.pages.dev (Cloudflare Pages, SPA fallback 有効で直リンク OK)
+  - api: https://famicale-api.luckystar-990000.workers.dev (Workers。 D1 `famicale-db` + R2 `famicale-images` + Workers AI 稼働。 migrations 0001-0004 適用済)
+  - GitHub: luckystar990000/famicale (private)。 作者はローカル config で luckystar990000 に統一。 push のみで自動デプロイは未設定
+  - デプロイは手動 wrangler:
+    - api: `cd apps/api && npx wrangler deploy`
+    - web: `cd apps/web && VITE_API_BASE=https://famicale-api.luckystar-990000.workers.dev/api npm run build && npx wrangler pages deploy dist --project-name=famicale --branch=main --commit-dirty=true`
+  - 別ドメイン構成なので web は VITE_API_BASE でビルド時に Worker 絶対 URL を注入 ([[project-famicale]] アーキテクチャ)
+  - ⚠️ 未検証: 実機での OCR アップロード (web→Worker の CORS 込み往復)。 curl では裏取り不能
+
+  **最優先 (残りの大きいマイルストーン): D1 移行**:
+  - 本番デプロイは方針 A で完了済み。 残るのは localStorage → D1 の本体。 これで ITP 7 日問題を根本解消 + 共有 URL のサーバ化 (現状 token も予定データも端末ローカルなので同一ブラウザ内でしか成立しない = **本番でも妻との共有は未成立**)。 持ち物の前日 Push 通知の土台もここ。 あわせて schedules API の地雷 (PUT COALESCE / スキーマ 0005: visit_date・時刻・postponed_from / 認証 / CORS 絞り) をまとめて処理。 client.ts の getSchedules 等は今は未配線 dead code。 詳細はメモリ [[project-famicale-deferred-refactors]]
 
   **着手トリガ待ち** (優先度低、 必要が出たらつまむ):
   - **タグ管理画面 S1 + リネーム S2**: 整理ニーズが顕在化したら (今は長押し削除のみ、 発見性低い)
