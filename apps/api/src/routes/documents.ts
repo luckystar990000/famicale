@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { extractText, getDocumentProxy } from 'unpdf'
 import type { Bindings } from '../index'
 import { extractSchedules, extractSchedulesFromText } from '../lib/ocr'
+import { requireEditKey } from '../lib/auth'
 
 // PDF にこれ未満の文字しか無ければスキャン画像 PDF とみなす (テキストレイヤ無し)。
 const PDF_MIN_TEXT_CHARS = 20
@@ -37,7 +38,7 @@ documents.get('/:id', async (c) => {
   return c.json(doc)
 })
 
-documents.post('/', async (c) => {
+documents.post('/', requireEditKey, async (c) => {
   const formData = await c.req.formData()
   const file: unknown = formData.get('file') ?? formData.get('image')
   if (!(file instanceof File)) return c.json({ error: 'file field required' }, 400)

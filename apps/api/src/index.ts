@@ -7,11 +7,12 @@ export type Bindings = {
   DB: D1Database
   BUCKET: R2Bucket
   AI: Ai
+  EDIT_KEY: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.use('*', cors({ origin: '*' }))
+app.use('*', cors({ origin: '*', allowHeaders: ['Content-Type', 'X-Edit-Key'] }))
 
 app.route('/api/documents', documents)
 app.route('/api/schedules', schedules)

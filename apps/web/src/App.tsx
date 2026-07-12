@@ -30,6 +30,7 @@ import TimetablePage from './pages/TimetablePage'
 import LunchPage from './pages/LunchPage'
 import SharePage from './pages/SharePage'
 import ViewerPage from './pages/ViewerPage'
+import { setEditKey } from './lib/edit-key'
 
 const NAV_ITEMS: { to: string; label: string; Icon: LucideIcon; end: boolean }[] = [
   { to: '/', label: 'ホーム', Icon: House, end: true },
@@ -41,6 +42,18 @@ const NAV_ITEMS: { to: string; label: string; Icon: LucideIcon; end: boolean }[]
 export default function App() {
   const location = useLocation()
   const viewerMode = location.pathname.startsWith('/v/')
+
+  // 編集用リンク (?k=編集キー) で開かれたらキーを localStorage に保存し、 URL からは即消す
+  // (ブラウザ履歴や共有時の露出を減らす)。 これで localStorage が消えてもリンクを開くだけで復元。
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const k = params.get('k')
+    if (!k) return
+    setEditKey(k)
+    params.delete('k')
+    const qs = params.toString()
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
+  }, [])
 
   return (
     <div

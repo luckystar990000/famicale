@@ -1,13 +1,35 @@
-import { useState } from 'react'
+import { useState, type FocusEvent } from 'react'
 import NavBar from '../components/NavBar'
 import AlertDialog from '../components/AlertDialog'
 import { ListSection, ListRow } from '../components/List'
 import { useShare } from '../state/share'
+import { getEditKey, setEditKey } from '../lib/edit-key'
+import { inlineInputStyle } from '../lib/form-styles'
 
 export default function SharePage() {
   const { shareUrl, generate, revoke } = useShare()
   const [copied, setCopied] = useState(false)
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
+  const [keySaved, setKeySaved] = useState(false)
+  const [editLinkCopied, setEditLinkCopied] = useState(false)
+
+  function handleKeyBlur(e: FocusEvent<HTMLInputElement>) {
+    setEditKey(e.target.value)
+    setKeySaved(true)
+    setTimeout(() => setKeySaved(false), 1500)
+  }
+
+  async function copyEditLink() {
+    const key = getEditKey()
+    if (!key) return
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/?k=${encodeURIComponent(key)}`)
+      setEditLinkCopied(true)
+      setTimeout(() => setEditLinkCopied(false), 1500)
+    } catch {
+      // ignore
+    }
+  }
 
   async function copyUrl() {
     if (!shareUrl) return
@@ -36,6 +58,31 @@ export default function SharePage() {
         title="家族と共有"
         back={{ to: '/' }}
       />
+
+      <ListSection
+        header="編集キー"
+        footer={keySaved ? '保存しました ✓' : '予定の追加・編集にはこのキーが必要です。 「編集用リンクをコピー」で妻や自分の別端末に送り、 開くだけでキー入力なしに編集できます。 閲覧だけの家族には不要です。'}
+      >
+        <ListRow>
+          <input
+            type="text"
+            defaultValue={getEditKey() ?? ''}
+            placeholder="編集キーを入力"
+            onBlur={handleKeyBlur}
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            style={inlineInputStyle}
+          />
+        </ListRow>
+        {getEditKey() && (
+          <ListRow onClick={copyEditLink}>
+            <span style={{ color: 'var(--tint)' }}>
+              {editLinkCopied ? 'コピーしました ✓' : '編集用リンクをコピー'}
+            </span>
+          </ListRow>
+        )}
+      </ListSection>
 
       {!shareUrl ? (
         <div style={{ padding: '20px 16px 0' }}>

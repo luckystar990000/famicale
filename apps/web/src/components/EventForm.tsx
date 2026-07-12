@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { ListSection, ListRow } from './List'
+import { inlineInputStyle } from '../lib/form-styles'
 
 export interface FormValues {
   title: string
@@ -239,21 +240,6 @@ const suggestionChipStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 500,
   cursor: 'pointer',
-}
-
-const inlineInputStyle: React.CSSProperties = {
-  width: '100%',
-  minWidth: 0,
-  border: 'none',
-  background: 'transparent',
-  fontSize: 17,
-  padding: 0,
-  outline: 'none',
-  fontFamily: 'inherit',
-  color: 'var(--label)',
-  lineHeight: 1.3,
-  WebkitAppearance: 'none',
-  appearance: 'none',
 }
 
 const inlineDateInputStyle: React.CSSProperties = {
