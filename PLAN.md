@@ -77,13 +77,14 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
   - 別ドメイン構成なので web は VITE_API_BASE でビルド時に Worker 絶対 URL を注入 ([[project-famicale]] アーキテクチャ)
   - ⚠️ 未検証: 実機での OCR アップロード (web→Worker の CORS 込み往復)。 curl では裏取り不能
 
-  **最優先 (残りの大きいマイルストーン): D1 移行 — 進行中 (M1 / M2-1 完了、 次は M2-2)**:
-  - 目的: localStorage → D1 で ITP 7 日問題を根本解消 + 共有 URL のサーバ化 (現状 token も予定データも端末ローカルなので同一ブラウザ内でしか成立しない = **本番でも妻との共有は未成立**)。 持ち物の前日 Push 通知の土台もここ。 認証は [[project-famicale-ux]] の**共有編集キー方式** (書き込みに編集キー、 夫婦 2 人で共有、 誰が編集したかは記録しない)。
-  - **M1 完了 (2026-07-11)**: migration 0005 で schedules に start_time / end_time / visit_date / visited_date / postponed_from / checklist 追加。 schedules.ts を全フィールド対応 + PUT を全置換方式 (null クリア可、 deferred #3 の地雷解消) + title 検証。 POST は id を web から受け取る。 curl 往復テスト済み・本番 deploy 済み。
-  - **M2-1 完了 (2026-07-11)**: client.ts の schedules CRUD を刷新 (listSchedules / createSchedule / updateSchedule / removeSchedule、 完全な Schedule を送受信)。 まだ state 未配線。
-  - **次回ここから → M2-2 (本丸)**: `state/schedules.tsx` を localStorage → 非同期 API に。 **楽観的更新で現シグネチャ維持**: create は web で id + 完全 Schedule を即生成して同期 return、 裏で POST (失敗時ロールバック)。 update / postpone / setStatus / shiftEventPeriod は現 item に変更を当てた完全オブジェクトを PUT (全置換契約)。 remove は楽観削除 + DELETE。 初回 useEffect で listSchedules() ロード。 タグレジストリ (未使用タグの記憶) は当面 localStorage 継続 (schedules 経由で実タグは共有されるので実害小)。
-  - **M2-3 (データ移行) は不要**: 既存 localStorage はテストデータのみと確認。 D1 化で自然消滅、 本番はクリーンな空から開始。
-  - **M2-4 / M3**: 書き込みに編集キー (X-Edit-Key) 要求 + CORS を pages.dev に絞る。 ViewerPage (`/v/:token`) が D1 から読む。 残地雷は [[project-famicale-deferred-refactors]] (category 列は NULL 据え置き中)。
+  **最優先だった D1 移行: M1 / M2 完了 (2026-07-12)。 残りは M3 (共有の仕上げ) のみ**:
+  - 目的: localStorage → D1 で ITP 7 日問題を根本解消 + 共有のサーバ化。 認証は [[project-famicale-ux]] の**共有編集キー方式** (夫婦 2 人で同じ編集キーを共有、 誰が編集したかは記録しない)。 → **妻との共有・2 人編集が実機で成立済み**。
+  - **M1 完了 (2026-07-11)**: migration 0005 で schedules に start_time / end_time / visit_date / visited_date / postponed_from / checklist 追加。 schedules.ts を全フィールド対応 + PUT を全置換方式 (null クリア可、 deferred #3 解消) + title 検証。 POST は id を web から受け取る。
+  - **M2 完了 (2026-07-12)**:
+    - M2-2: `state/schedules.tsx` を D1 API に配線。 楽観的更新 (ローカル即反映 → 裏で API → 失敗ロールバック、 itemsRef で stale closure 回避)、 呼び出し元は無変更。 tagRegistry は localStorage 継続。 実機で作成 → D1 保存 → リロード残存を確認。
+    - M2-4: 編集キー認証。 Worker `requireEditKey` で書き込み (schedules POST/PUT/DELETE, documents POST) を X-Edit-Key 照合保護 (secret `EDIT_KEY`)、 GET は公開。 web は編集キーを localStorage 保持し自動付与。 SharePage に折りたたみ式の編集キー UI (値を隠す、 タップで展開) + 「編集用リンクをコピー」。 App は `?k=編集キー` で開くとキー保存 + URL 除去 → **localStorage が消えてもリンクを開けば復元 (iOS 7 日問題を編集キーでも回避)**。
+    - M2-3 (データ移行) は不要だった (テストデータのみ)。
+  - **残り = M3 (共有の仕上げ、 次回ここから)**: ViewerPage (`/v/:token`) を D1 ベースに整備 (今も CountdownPage は D1 から読むので閲覧共有自体は成立済み、 M3 は専用閲覧ビューと共有トークンの扱いの仕上げ)。 CORS を `*` → pages.dev に絞る (セキュリティ強化)。 残地雷は [[project-famicale-deferred-refactors]] (category 列は NULL 据え置き中)。
 
   **着手トリガ待ち** (優先度低、 必要が出たらつまむ):
   - **タグ管理画面 S1 + リネーム S2**: 整理ニーズが顕在化したら (今は長押し削除のみ、 発見性低い)
