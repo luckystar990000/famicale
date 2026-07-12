@@ -12,9 +12,11 @@ export default function SharePage() {
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
   const [keySaved, setKeySaved] = useState(false)
   const [editLinkCopied, setEditLinkCopied] = useState(false)
+  const [editingKey, setEditingKey] = useState(false)
 
   function handleKeyBlur(e: FocusEvent<HTMLInputElement>) {
     setEditKey(e.target.value)
+    setEditingKey(false)
     setKeySaved(true)
     setTimeout(() => setKeySaved(false), 1500)
   }
@@ -63,18 +65,28 @@ export default function SharePage() {
         header="編集キー"
         footer={keySaved ? '保存しました ✓' : '予定の追加・編集にはこのキーが必要です。 「編集用リンクをコピー」で妻や自分の別端末に送り、 開くだけでキー入力なしに編集できます。 閲覧だけの家族には不要です。'}
       >
-        <ListRow>
-          <input
-            type="text"
-            defaultValue={getEditKey() ?? ''}
-            placeholder="編集キーを入力"
-            onBlur={handleKeyBlur}
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            style={inlineInputStyle}
+        {editingKey ? (
+          <ListRow align="vertical" label="編集キー">
+            <input
+              type="text"
+              defaultValue={getEditKey() ?? ''}
+              placeholder="編集キーを入力"
+              onBlur={handleKeyBlur}
+              autoFocus
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              style={inlineInputStyle}
+            />
+          </ListRow>
+        ) : (
+          <ListRow
+            label="編集キー"
+            value={getEditKey() ? '設定済み' : '未設定'}
+            trailing="›"
+            onClick={() => setEditingKey(true)}
           />
-        </ListRow>
+        )}
         {getEditKey() && (
           <ListRow onClick={copyEditLink}>
             <span style={{ color: 'var(--tint)' }}>
