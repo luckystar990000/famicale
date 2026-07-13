@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Timetable, TimetableCell, ScheduleSource } from '@famicale/shared'
 import { uuid } from '../lib/uuid'
 
@@ -56,6 +56,8 @@ interface TimetablesAPI {
   clearCell: (id: string, dayOfWeek: TimetableCell['dayOfWeek'], period: number) => void
   remove: (id: string) => void
   reset: () => void
+  move: (id: string, dir: -1 | 1) => void
+  knownSubjects: string[]
 }
 
 const Ctx = createContext<TimetablesAPI | null>(null)
@@ -120,11 +122,32 @@ export function TimetablesProvider({ children }: { children: ReactNode }) {
     setItems([])
   }, [])
 
+  // 一覧の並べ替え (子供の表示順)。 dir=-1 で上へ、 +1 で下へ。
+  const move = useCallback((id: string, dir: -1 | 1) => {
+    setItems(prev => {
+      const idx = prev.findIndex(t => t.id === id)
+      if (idx < 0) return prev
+      const to = idx + dir
+      if (to < 0 || to >= prev.length) return prev
+      const next = [...prev]
+      const [item] = next.splice(idx, 1)
+      next.splice(to, 0, item)
+      return next
+    })
+  }, [])
+
   const byId = useCallback((id: string) => items.find(t => t.id === id), [items])
   const byOwner = useCallback((owner: string) => items.filter(t => t.owner === owner), [items])
 
+  // 既に入力済みの科目一覧 (重複除去)。 マス編集で候補チップとして再利用する。
+  const knownSubjects = useMemo(() => {
+    const set = new Set<string>()
+    for (const t of items) for (const c of t.cells) set.add(c.subject)
+    return [...set].sort()
+  }, [items])
+
   return (
-    <Ctx.Provider value={{ items, byId, byOwner, create, update, setCell, clearCell, remove, reset }}>
+    <Ctx.Provider value={{ items, byId, byOwner, create, update, setCell, clearCell, remove, reset, move, knownSubjects }}>
       {children}
     </Ctx.Provider>
   )

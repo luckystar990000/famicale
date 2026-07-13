@@ -1,13 +1,13 @@
 import { Fragment, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Sparkles, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import type { DayOfWeek } from '@famicale/shared'
 import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
 import AlertDialog from '../components/AlertDialog'
 import { ListSection, ListRow } from '../components/List'
+import SuggestionChips from '../components/SuggestionChips'
 import { useTimetables } from '../state/timetables'
-import { mockExtractTimetable } from '../lib/mock-ocr'
 
 const DAYS: DayOfWeek[] = [1, 2, 3, 4, 5]
 const DAY_LABELS: Record<DayOfWeek, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' }
@@ -18,7 +18,7 @@ type EditingCell = { dayOfWeek: DayOfWeek; period: number; current: string }
 export default function TimetablePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { byId, update, setCell, clearCell, remove } = useTimetables()
+  const { byId, update, setCell, clearCell, remove, knownSubjects } = useTimetables()
   const tt = id ? byId(id) : undefined
 
   const [editing, setEditing] = useState<EditingCell | null>(null)
@@ -26,7 +26,6 @@ export default function TimetablePage() {
   const [ownerEditing, setOwnerEditing] = useState(false)
   const [draftOwner, setDraftOwner] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [loadingSample, setLoadingSample] = useState(false)
 
   if (!tt) {
     return (
@@ -78,24 +77,11 @@ export default function TimetablePage() {
     setOwnerEditing(false)
   }
 
-  async function applySample() {
-    if (!id || loadingSample) return
-    setLoadingSample(true)
-    try {
-      const sample = await mockExtractTimetable(new File([''], 'sample'))
-      update(id, { cells: sample.cells })
-    } finally {
-      setLoadingSample(false)
-    }
-  }
-
   function handleDelete() {
     if (!id) return
     remove(id)
     navigate('/timetables', { replace: true })
   }
-
-  const isEmpty = tt.cells.length === 0
 
   return (
     <>
@@ -105,10 +91,6 @@ export default function TimetablePage() {
       />
 
       <div style={{ paddingTop: 16, paddingBottom: 24 }}>
-        <ListSection>
-          <ListRow label="名前" onClick={openOwnerEdit} trailing={<span style={{ fontSize: 15 }}>{tt.owner}</span>} />
-        </ListSection>
-
         <div style={{ padding: '0 16px', marginBottom: 16 }}>
           <div style={{
             background: 'var(--bg-card)',
@@ -150,38 +132,8 @@ export default function TimetablePage() {
           </div>
         </div>
 
-        {isEmpty && (
-          <div style={{ padding: '0 16px', marginBottom: 16 }}>
-            <button
-              type="button"
-              onClick={applySample}
-              disabled={loadingSample}
-              className="press-feedback"
-              style={{
-                width: '100%',
-                minHeight: 54,
-                padding: '14px 20px',
-                background: 'rgba(0, 122, 255, 0.08)',
-                border: '0.5px solid var(--glass-border)',
-                borderRadius: 27,
-                color: 'var(--tint)',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: loadingSample ? 'wait' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                opacity: loadingSample ? 0.5 : 1,
-              }}
-            >
-              <Sparkles size={18} strokeWidth={2.2} color="var(--tint)" />
-              {loadingSample ? '読み込み中…' : 'サンプル時間割を入れる'}
-            </button>
-          </div>
-        )}
-
-        <ListSection>
+        <ListSection header="この時間割の設定">
+          <ListRow label="名前" onClick={openOwnerEdit} trailing={<span style={{ fontSize: 15, color: 'var(--label-secondary)' }}>{tt.owner}</span>} />
           <ListRow onClick={() => setDeleteOpen(true)} destructive>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Trash2 size={18} strokeWidth={2.2} color="var(--destructive)" />
@@ -218,6 +170,8 @@ export default function TimetablePage() {
             />
           </ListRow>
         </ListSection>
+
+        <SuggestionChips items={knownSubjects} onPick={setDraftSubject} />
 
         {editing?.current && (
           <ListSection>

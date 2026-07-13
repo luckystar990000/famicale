@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react'
 import NavBar from '../components/NavBar'
 import Sheet from '../components/Sheet'
 import { ListSection, ListRow } from '../components/List'
+import SuggestionChips from '../components/SuggestionChips'
 import { useTimetables } from '../state/timetables'
 import { useSchedules } from '../state/schedules'
 
 export default function TimetablesPage() {
   const navigate = useNavigate()
-  const { items, create } = useTimetables()
+  const { items, create, move } = useTimetables()
   const { knownTags } = useSchedules()
   const [newOpen, setNewOpen] = useState(false)
   const [draftOwner, setDraftOwner] = useState('')
+  const [reordering, setReordering] = useState(false)
 
   function handleCreate() {
     const owner = draftOwner.trim()
@@ -39,36 +41,78 @@ export default function TimetablesPage() {
         {items.length === 0 ? (
           <EmptyState onCreate={openNew} />
         ) : (
-          <ListSection header={`登録済み (${items.length})`}>
-            {items.map(t => {
-              const cellCount = t.cells.length
-              return (
+          <>
+            {items.length >= 2 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setReordering(r => !r)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--tint)',
+                    fontSize: 15,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  {reordering ? '完了' : '並べ替え'}
+                </button>
+              </div>
+            )}
+            <ListSection header={`登録済み (${items.length})`}>
+              {items.map((t, i) => (
                 <ListRow key={t.id}>
-                  <Link
-                    to={`/timetables/${t.id}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      width: '100%',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>
+                  {reordering ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>
                         {t.owner}
                       </div>
-                      <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
-                        {cellCount} マス
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => move(t.id, -1)}
+                        disabled={i === 0}
+                        style={reorderBtnStyle(i === 0)}
+                      >
+                        <ChevronUp size={20} strokeWidth={2.2} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => move(t.id, 1)}
+                        disabled={i === items.length - 1}
+                        style={reorderBtnStyle(i === items.length - 1)}
+                      >
+                        <ChevronDown size={20} strokeWidth={2.2} />
+                      </button>
                     </div>
-                    <ChevronRight size={18} strokeWidth={2.2} color="var(--label-tertiary)" />
-                  </Link>
+                  ) : (
+                    <Link
+                      to={`/timetables/${t.id}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        width: '100%',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>
+                          {t.owner}
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
+                          {t.cells.length} マス
+                        </div>
+                      </div>
+                      <ChevronRight size={18} strokeWidth={2.2} color="var(--label-tertiary)" />
+                    </Link>
+                  )}
                 </ListRow>
-              )
-            })}
-          </ListSection>
+              ))}
+            </ListSection>
+          </>
         )}
       </div>
 
@@ -102,32 +146,27 @@ export default function TimetablesPage() {
           </ListRow>
         </ListSection>
 
-        {knownTags.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 4px', marginTop: 4 }}>
-            {knownTags.map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setDraftOwner(t)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 999,
-                  border: '0.5px solid var(--glass-border)',
-                  background: 'rgba(255, 255, 255, 0.55)',
-                  color: 'var(--label)',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
-                + {t}
-              </button>
-            ))}
-          </div>
-        )}
+        <SuggestionChips items={knownTags} onPick={setDraftOwner} />
       </Sheet>
     </>
   )
+}
+
+function reorderBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    border: 'none',
+    background: 'rgba(120, 120, 128, 0.12)',
+    color: disabled ? 'var(--label-tertiary)' : 'var(--tint)',
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.4 : 1,
+    flexShrink: 0,
+  }
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
