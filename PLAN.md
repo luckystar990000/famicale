@@ -77,13 +77,14 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
   - 別ドメイン構成なので web は VITE_API_BASE でビルド時に Worker 絶対 URL を注入 ([[project-famicale]] アーキテクチャ)
   - ⚠️ 未検証: 実機での OCR アップロード (web→Worker の CORS 込み往復)。 curl では裏取り不能
 
-  **最優先だった D1 移行: M1 / M2 完了 (2026-07-12)。 残りは M3 (共有の仕上げ) のみ**:
+  **最優先だった D1 移行: M1 / M2 / M4 完了。 残りは M3 (共有の仕上げ) のみ**:
   - 目的: localStorage → D1 で ITP 7 日問題を根本解消 + 共有のサーバ化。 認証は [[project-famicale-ux]] の**共有編集キー方式** (夫婦 2 人で同じ編集キーを共有、 誰が編集したかは記録しない)。 → **妻との共有・2 人編集が実機で成立済み**。
   - **M1 完了 (2026-07-11)**: migration 0005 で schedules に start_time / end_time / visit_date / visited_date / postponed_from / checklist 追加。 schedules.ts を全フィールド対応 + PUT を全置換方式 (null クリア可、 deferred #3 解消) + title 検証。 POST は id を web から受け取る。
   - **M2 完了 (2026-07-12)**:
     - M2-2: `state/schedules.tsx` を D1 API に配線。 楽観的更新 (ローカル即反映 → 裏で API → 失敗ロールバック、 itemsRef で stale closure 回避)、 呼び出し元は無変更。 tagRegistry は localStorage 継続。 実機で作成 → D1 保存 → リロード残存を確認。
     - M2-4: 編集キー認証。 Worker `requireEditKey` で書き込み (schedules POST/PUT/DELETE, documents POST) を X-Edit-Key 照合保護 (secret `EDIT_KEY`)、 GET は公開。 web は編集キーを localStorage 保持し自動付与。 SharePage に折りたたみ式の編集キー UI (値を隠す、 タップで展開) + 「編集用リンクをコピー」。 App は `?k=編集キー` で開くとキー保存 + URL 除去 → **localStorage が消えてもリンクを開けば復元 (iOS 7 日問題を編集キーでも回避)**。
     - M2-3 (データ移行) は不要だった (テストデータのみ)。
+  - **M4 完了 (2026-07-14): 時間割・献立も D1 化**: migration 0006 で timetables (sort_order で並べ替え順) + lunch_tables。 Workers routes は schedules と同じ (GET 公開 / 書き込み編集キー / 全置換)。 state を楽観的更新で配線 + 初回に localStorage→D1 自動移行 (実データ保護、 移行成功まで localStorage 保持)。 LunchTable を shared に移動、 Timetable に sortOrder 追加。 時間割の並べ替えは sortOrder swap で D1 反映。 → **予定・持ち物・時間割・献立すべて D1 で共有される状態に**。
   - **残り = M3 (共有の仕上げ、 次回ここから)**: ViewerPage (`/v/:token`) を D1 ベースに整備 (今も CountdownPage は D1 から読むので閲覧共有自体は成立済み、 M3 は専用閲覧ビューと共有トークンの扱いの仕上げ)。 CORS を `*` → pages.dev に絞る (セキュリティ強化)。 残地雷は [[project-famicale-deferred-refactors]] (category 列は NULL 据え置き中)。
 
   **着手トリガ待ち** (優先度低、 必要が出たらつまむ):
