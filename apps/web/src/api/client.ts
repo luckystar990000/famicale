@@ -1,4 +1,4 @@
-import type { Schedule, ExtractedSchedule } from '@famicale/shared'
+import type { Schedule, Timetable, LunchTable, ExtractedSchedule } from '@famicale/shared'
 import { mockExtractSchedules } from '../lib/mock-ocr'
 import { getEditKey } from '../lib/edit-key'
 
@@ -62,6 +62,74 @@ export async function removeSchedule(id: string): Promise<void> {
     headers: editKeyHeader(),
   })
   if (!res.ok) throw new Error(`DELETE /schedules/${id} failed: ${res.status}`)
+}
+
+// --- timetables CRUD (schedules と同じ全置換契約) ---
+
+export async function listTimetables(): Promise<Timetable[]> {
+  const res = await fetch(`${BASE}/timetables`)
+  if (!res.ok) throw new Error(`GET /timetables failed: ${res.status}`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function createTimetable(t: Timetable): Promise<Timetable> {
+  const res = await fetch(`${BASE}/timetables`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...editKeyHeader() },
+    body: JSON.stringify(t),
+  })
+  if (!res.ok) throw new Error(`POST /timetables failed: ${res.status}`)
+  return res.json()
+}
+
+export async function updateTimetable(t: Timetable): Promise<Timetable> {
+  const res = await fetch(`${BASE}/timetables/${t.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...editKeyHeader() },
+    body: JSON.stringify(t),
+  })
+  if (!res.ok) throw new Error(`PUT /timetables/${t.id} failed: ${res.status}`)
+  return res.json()
+}
+
+export async function removeTimetable(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/timetables/${id}`, { method: 'DELETE', headers: editKeyHeader() })
+  if (!res.ok) throw new Error(`DELETE /timetables/${id} failed: ${res.status}`)
+}
+
+// --- lunch CRUD (schedules と同じ全置換契約) ---
+
+export async function listLunch(): Promise<LunchTable[]> {
+  const res = await fetch(`${BASE}/lunch`)
+  if (!res.ok) throw new Error(`GET /lunch failed: ${res.status}`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function createLunch(t: LunchTable): Promise<LunchTable> {
+  const res = await fetch(`${BASE}/lunch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...editKeyHeader() },
+    body: JSON.stringify(t),
+  })
+  if (!res.ok) throw new Error(`POST /lunch failed: ${res.status}`)
+  return res.json()
+}
+
+export async function updateLunch(t: LunchTable): Promise<LunchTable> {
+  const res = await fetch(`${BASE}/lunch/${t.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...editKeyHeader() },
+    body: JSON.stringify(t),
+  })
+  if (!res.ok) throw new Error(`PUT /lunch/${t.id} failed: ${res.status}`)
+  return res.json()
+}
+
+export async function removeLunch(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/lunch/${id}`, { method: 'DELETE', headers: editKeyHeader() })
+  if (!res.ok) throw new Error(`DELETE /lunch/${id} failed: ${res.status}`)
 }
 
 // --- OCR (documents) ---

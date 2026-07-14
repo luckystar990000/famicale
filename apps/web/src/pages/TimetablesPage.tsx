@@ -34,6 +34,7 @@ export default function TimetablesPage() {
     <>
       <NavBar
         title="時間割"
+        back={{ to: '/' }}
         rightAction={{ label: '追加', icon: 'plus', onClick: openNew }}
       />
 

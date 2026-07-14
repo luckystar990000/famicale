@@ -59,6 +59,7 @@ export interface Timetable {
   cells: TimetableCell[]
   validFrom?: string
   validTo?: string
+  sortOrder?: number
   source: ScheduleSource
   createdAt: string
   updatedAt: string
@@ -69,4 +70,11 @@ export interface ExtractedTimetable {
   cells: TimetableCell[]
   validFrom?: string
   validTo?: string
+}
+
+// 献立表は学校単位 (小学校 / 中学校 等)。 menus は 'YYYY-MM-DD' → 献立テキスト。
+export interface LunchTable {
+  id: string
+  name: string
+  menus: Record<string, string>
 }
