@@ -86,7 +86,9 @@ UI のことを書き換える/新画面追加するときは **必ず `famicale
     - M2-3 (データ移行) は不要だった (テストデータのみ)。
   - **M4 完了 (2026-07-14): 時間割・献立も D1 化**: migration 0006 で timetables (sort_order で並べ替え順) + lunch_tables。 Workers routes は schedules と同じ (GET 公開 / 書き込み編集キー / 全置換)。 state を楽観的更新で配線 + 初回に localStorage→D1 自動移行 (実データ保護、 移行成功まで localStorage 保持)。 LunchTable を shared に移動、 Timetable に sortOrder 追加。 時間割の並べ替えは sortOrder swap で D1 反映。 → **予定・持ち物・時間割・献立すべて D1 で共有される状態に**。
   - **M5 完了 (2026-07-19): 設定画面 + 予定の前日通知 (Web Push)**: `/settings` 新設 (共有 URL・編集キー・通知トグルを集約、 ホーム右上は歯車、 SharePage は廃止)。 通知は毎日 20:00 JST (Cron `0 11 * * *` UTC) に明日が対象日の予定 (visitDate 優先、 中止・visited 除外) を「明日: 〇〇」 で全購読者へ。 構成: public/sw.js (受信・表示・タップで開く) / lib/push.ts (購読、 VAPID 公開鍵) / D1 push_subscriptions (0007) / Worker 送信は @block65/webcrypto-web-push、 秘密鍵は secret VAPID_PRIVATE_KEY。 手動テスト: POST /api/push/test (編集キー保護、 ?reminder=1 で本番ロジック)。 実機 (iPhone PWA) で通知表示まで確認済み。 ⚠️ iOS は Safari と PWA で localStorage が別 → 編集キーは PWA 側にも手動入力が要る (詳細はメモリ project-famicale-environment)。
-  - **残り = M3 (共有の仕上げ、 次回ここから)**: ViewerPage (`/v/:token`) を D1 ベースに整備 (今も CountdownPage は D1 から読むので閲覧共有自体は成立済み、 M3 は専用閲覧ビューと共有トークンの扱いの仕上げ)。 CORS を `*` → pages.dev に絞る (セキュリティ強化)。 残地雷は [[project-famicale-deferred-refactors]] (category 列は NULL 据え置き中)。
+  - **M3 完了 (2026-07-19): 共有のサーバ化 + 閲覧アクセス制御 → これで v1 完成**: share_tokens (0008) でトークンを D1 照合に (共有 URL が発行端末以外でも機能)。 閲覧 GET は「編集キー or 共有トークン」必須 = URL を知るだけの部外者には見えない。 /api/share (編集キー保護) で発行・失効。 ViewerPage はトークン付き fetch で自己完結。 編集キー未設定端末のホームには赤系バナーで設定導線。 CORS は famicale.pages.dev (+プレビュー/localhost) に絞り済み。 curl 全パターン + 実機 4 フロー検証済み。
+
+  **🎉 v1 完成 (2026-07-19)**: OCR 取り込み / カウントダウン UX / D1 共有 (予定・持ち物・時間割・献立) / 夫婦 2 人編集 (編集キー) / 閲覧専用共有 URL / 前日 20 時 Web Push 通知 / 設定画面。 残地雷は [[project-famicale-deferred-refactors]] (category 列 NULL 据え置き等の小粒のみ)。
 
   **着手トリガ待ち** (優先度低、 必要が出たらつまむ):
   - **タグ管理画面 S1 + リネーム S2**: 整理ニーズが顕在化したら (今は長押し削除のみ、 発見性低い)
