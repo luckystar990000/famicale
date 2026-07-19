@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { extractText, getDocumentProxy } from 'unpdf'
 import type { Bindings } from '../index'
 import { extractSchedules, extractSchedulesFromText } from '../lib/ocr'
-import { requireEditKey } from '../lib/auth'
+import { requireEditKey, requireReadAccess } from '../lib/auth'
 
 // PDF にこれ未満の文字しか無ければスキャン画像 PDF とみなす (テキストレイヤ無し)。
 const PDF_MIN_TEXT_CHARS = 20
@@ -22,7 +22,7 @@ export const EXTRACT_FAILED_ERROR = 'extract-failed'
 
 const documents = new Hono<{ Bindings: Bindings }>()
 
-documents.get('/', async (c) => {
+documents.get('/', requireReadAccess, async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT id, filename, content_type, status, created_at, updated_at
      FROM documents ORDER BY created_at DESC`
@@ -30,7 +30,7 @@ documents.get('/', async (c) => {
   return c.json(results)
 })
 
-documents.get('/:id', async (c) => {
+documents.get('/:id', requireReadAccess, async (c) => {
   const doc = await c.env.DB.prepare(
     'SELECT * FROM documents WHERE id = ?'
   ).bind(c.req.param('id')).first()

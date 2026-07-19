@@ -1,20 +1,30 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Lock, Eye } from 'lucide-react'
+import type { Schedule } from '@famicale/shared'
 import { classify, isRecentlyEnded } from '../lib/event-status'
 import { TABS, inTab, sortForTab, emptyMessage, type TabId, type Item } from '../lib/event-filters'
 import EventCard from '../components/EventCard'
 import SegmentedControl from '../components/SegmentedControl'
-import { useSchedules } from '../state/schedules'
-import { useShare } from '../state/share'
+import { listSchedulesByToken } from '../api/client'
 
 export default function ViewerPage() {
   const { token } = useParams<{ token: string }>()
-  const { isValidToken } = useShare()
-  const { items } = useSchedules()
+  const [items, setItems] = useState<Schedule[]>([])
+  // トークンの照合はサーバ側 (共有トークンを知らない端末でも共有 URL が機能する)
+  const [viewState, setViewState] = useState<'loading' | 'ok' | 'invalid'>('loading')
   const [tab, setTab] = useState<TabId>('all')
 
-  const valid = token ? isValidToken(token) : false
+  useEffect(() => {
+    if (!token) { setViewState('invalid'); return }
+    let cancelled = false
+    listSchedulesByToken(token)
+      .then(loaded => { if (!cancelled) { setItems(loaded); setViewState('ok') } })
+      .catch(() => { if (!cancelled) setViewState('invalid') })
+    return () => { cancelled = true }
+  }, [token])
+
+  const valid = viewState !== 'invalid'
 
   const today = new Date()
   const dateText = today.toLocaleDateString('ja-JP', {

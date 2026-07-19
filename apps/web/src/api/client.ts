@@ -27,11 +27,19 @@ function editKeyHeader(): Record<string, string> {
 // --- schedules CRUD ---
 // PUT は全置換契約。 create/update とも「完全な Schedule オブジェクト」を送る
 // (id は web 側で生成。 サーバは受け取った id をそのまま使う → 楽観的更新が成立する)。
-// GET は認証不要 (閲覧公開)、 書き込みは編集キーが要る。
+// 閲覧 (GET) も保護: 編集キー or 共有トークンのどちらかが必要 (部外者から見えない)。
 
 export async function listSchedules(): Promise<Schedule[]> {
-  const res = await fetch(`${BASE}/schedules`)
+  const res = await fetch(`${BASE}/schedules`, { headers: editKeyHeader() })
   if (!res.ok) throw new Error(`GET /schedules failed: ${res.status}`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+// 閲覧専用ページ (/v/<token>) 用: 共有トークンで取得。 無効トークンは 401。
+export async function listSchedulesByToken(token: string): Promise<Schedule[]> {
+  const res = await fetch(`${BASE}/schedules?token=${encodeURIComponent(token)}`)
+  if (!res.ok) throw new Error(`GET /schedules (token) failed: ${res.status}`)
   const data = await res.json()
   return Array.isArray(data) ? data : []
 }
@@ -67,7 +75,7 @@ export async function removeSchedule(id: string): Promise<void> {
 // --- timetables CRUD (schedules と同じ全置換契約) ---
 
 export async function listTimetables(): Promise<Timetable[]> {
-  const res = await fetch(`${BASE}/timetables`)
+  const res = await fetch(`${BASE}/timetables`, { headers: editKeyHeader() })
   if (!res.ok) throw new Error(`GET /timetables failed: ${res.status}`)
   const data = await res.json()
   return Array.isArray(data) ? data : []
@@ -101,7 +109,7 @@ export async function removeTimetable(id: string): Promise<void> {
 // --- lunch CRUD (schedules と同じ全置換契約) ---
 
 export async function listLunch(): Promise<LunchTable[]> {
-  const res = await fetch(`${BASE}/lunch`)
+  const res = await fetch(`${BASE}/lunch`, { headers: editKeyHeader() })
   if (!res.ok) throw new Error(`GET /lunch failed: ${res.status}`)
   const data = await res.json()
   return Array.isArray(data) ? data : []
@@ -130,6 +138,27 @@ export async function updateLunch(t: LunchTable): Promise<LunchTable> {
 export async function removeLunch(id: string): Promise<void> {
   const res = await fetch(`${BASE}/lunch/${id}`, { method: 'DELETE', headers: editKeyHeader() })
   if (!res.ok) throw new Error(`DELETE /lunch/${id} failed: ${res.status}`)
+}
+
+// --- 共有トークン管理 (編集キー保護) ---
+
+export async function getShareToken(): Promise<string | null> {
+  const res = await fetch(`${BASE}/share`, { headers: editKeyHeader() })
+  if (!res.ok) throw new Error(`GET /share failed: ${res.status}`)
+  const data = await res.json()
+  return data.token ?? null
+}
+
+export async function generateShareToken(): Promise<string> {
+  const res = await fetch(`${BASE}/share`, { method: 'POST', headers: editKeyHeader() })
+  if (!res.ok) throw new Error(`POST /share failed: ${res.status}`)
+  const data = await res.json()
+  return data.token
+}
+
+export async function revokeShareToken(): Promise<void> {
+  const res = await fetch(`${BASE}/share`, { method: 'DELETE', headers: editKeyHeader() })
+  if (!res.ok) throw new Error(`DELETE /share failed: ${res.status}`)
 }
 
 // --- OCR (documents) ---

@@ -5,6 +5,7 @@ import schedules from './routes/schedules'
 import timetables from './routes/timetables'
 import lunch from './routes/lunch'
 import push from './routes/push'
+import share from './routes/share'
 
 export type Bindings = {
   DB: D1Database
@@ -16,13 +17,24 @@ export type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.use('*', cors({ origin: '*', allowHeaders: ['Content-Type', 'X-Edit-Key'] }))
+// CORS: 本番 Pages (プレビュー含む) と localhost dev のみ許可
+app.use('*', cors({
+  origin: (origin) => {
+    if (!origin) return origin
+    if (origin === 'https://famicale.pages.dev') return origin
+    if (origin.endsWith('.famicale.pages.dev')) return origin
+    if (origin.startsWith('http://localhost:')) return origin
+    return ''
+  },
+  allowHeaders: ['Content-Type', 'X-Edit-Key'],
+}))
 
 app.route('/api/documents', documents)
 app.route('/api/schedules', schedules)
 app.route('/api/timetables', timetables)
 app.route('/api/lunch', lunch)
 app.route('/api/push', push)
+app.route('/api/share', share)
 
 app.get('/', (c) => c.json({ status: 'ok', service: 'famicale-api' }))
 

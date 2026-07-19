@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { TimetableCell } from '@famicale/shared'
 import type { Bindings } from '../index'
-import { requireEditKey } from '../lib/auth'
+import { requireEditKey, requireReadAccess } from '../lib/auth'
 
 const timetables = new Hono<{ Bindings: Bindings }>()
 
@@ -61,14 +61,14 @@ type TimetableBody = {
   source?: 'manual' | 'document'
 }
 
-timetables.get('/', async (c) => {
+timetables.get('/', requireReadAccess, async (c) => {
   const { results } = await c.env.DB.prepare(
     'SELECT * FROM timetables ORDER BY sort_order ASC, created_at ASC'
   ).all<Row>()
   return c.json(results.map(toTimetable))
 })
 
-timetables.get('/:id', async (c) => {
+timetables.get('/:id', requireReadAccess, async (c) => {
   const row = await c.env.DB.prepare('SELECT * FROM timetables WHERE id = ?')
     .bind(c.req.param('id')).first<Row>()
   if (!row) return c.json({ error: 'Not found' }, 404)

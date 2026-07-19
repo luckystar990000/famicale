@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { ChecklistItem } from '@famicale/shared'
 import type { Bindings } from '../index'
-import { requireEditKey } from '../lib/auth'
+import { requireEditKey, requireReadAccess } from '../lib/auth'
 
 const schedules = new Hono<{ Bindings: Bindings }>()
 
@@ -106,14 +106,14 @@ type ScheduleBody = {
   checklist?: ChecklistItem[] | null
 }
 
-schedules.get('/', async (c) => {
+schedules.get('/', requireReadAccess, async (c) => {
   const { results } = await c.env.DB.prepare(
     'SELECT * FROM schedules ORDER BY start_date ASC'
   ).all<Row>()
   return c.json(results.map(toSchedule))
 })
 
-schedules.get('/:id', async (c) => {
+schedules.get('/:id', requireReadAccess, async (c) => {
   const row = await c.env.DB.prepare('SELECT * FROM schedules WHERE id = ?')
     .bind(c.req.param('id')).first<Row>()
   if (!row) return c.json({ error: 'Not found' }, 404)

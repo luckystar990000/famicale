@@ -42,7 +42,8 @@ export default function SettingsPage() {
     setEditKey(e.target.value)
     setEditingKey(false)
     setKeySaved(true)
-    setTimeout(() => setKeySaved(false), 1500)
+    // 各 Provider の初回 GET は既に終わっているので、 新キーで取り直すためリロード
+    setTimeout(() => window.location.reload(), 800)
   }
 
   async function copyEditLink() {

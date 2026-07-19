@@ -86,6 +86,7 @@ function normalizeTags(tags?: string[]): string[] | undefined {
 interface SchedulesAPI {
   items: Schedule[]
   loading: boolean
+  unauthorized: boolean
   byId: (id: string) => Schedule | undefined
   create: (input: ScheduleInput) => Schedule
   bulkCreate: (inputs: ScheduleInput[], source?: 'manual' | 'document') => Schedule[]
@@ -103,6 +104,7 @@ const Ctx = createContext<SchedulesAPI | null>(null)
 export function SchedulesProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
+  const [unauthorized, setUnauthorized] = useState(false)
   const [tagRegistry, setTagRegistry] = useState<string[]>(loadTagRegistry)
 
   // 最新 items を deps なしで読むための ref (mutation で変更前 item を掴む → ロールバック用)。
@@ -132,7 +134,11 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
         setItems(loaded)
         registerTags(loaded.flatMap(s => s.tags ?? []))
       })
-      .catch(err => { console.error('listSchedules failed', err) })
+      .catch(err => {
+        console.error('listSchedules failed', err)
+        // 編集キー未設定 (or 不一致) の端末。 ホームに設定への導線を出す。
+        if (!cancelled && String(err).includes('401')) setUnauthorized(true)
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [registerTags])
@@ -301,7 +307,7 @@ export function SchedulesProvider({ children }: { children: ReactNode }) {
   }, [items, tagRegistry])
 
   return (
-    <Ctx.Provider value={{ items, loading, byId, create, bulkCreate, update, remove, setStatus, postpone, shiftEventPeriod, knownTags, deleteTag }}>
+    <Ctx.Provider value={{ items, loading, unauthorized, byId, create, bulkCreate, update, remove, setStatus, postpone, shiftEventPeriod, knownTags, deleteTag }}>
       {children}
     </Ctx.Provider>
   )

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import type { Bindings } from '../index'
-import { requireEditKey } from '../lib/auth'
+import { requireEditKey, requireReadAccess } from '../lib/auth'
 
 const lunch = new Hono<{ Bindings: Bindings }>()
 
@@ -53,7 +53,7 @@ type LunchBody = {
   menus?: Record<string, string> | null
 }
 
-lunch.get('/', async (c) => {
+lunch.get('/', requireReadAccess, async (c) => {
   const { results } = await c.env.DB.prepare(
     'SELECT * FROM lunch_tables ORDER BY created_at ASC'
   ).all<Row>()

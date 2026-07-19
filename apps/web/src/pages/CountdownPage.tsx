@@ -14,7 +14,7 @@ import SegmentedControl from '../components/SegmentedControl'
 import Toast, { type ToastTone } from '../components/Toast'
 
 export default function CountdownPage() {
-  const { items, knownTags, deleteTag, update } = useSchedules()
+  const { items, knownTags, deleteTag, update, unauthorized } = useSchedules()
   const navigate = useNavigate()
   const [tab, setTab] = useState<TabId>('all')
   const [query, setQuery] = useState('')
@@ -152,6 +152,28 @@ export default function CountdownPage() {
           <Settings size={22} strokeWidth={2.2} color="var(--label)" />
         </button>
       </div>
+
+      {unauthorized && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <Link
+            to="/settings"
+            style={{
+              display: 'block',
+              padding: '14px 20px',
+              background: 'rgba(255, 59, 48, 0.08)',
+              border: '1.5px solid var(--destructive)',
+              borderRadius: 27,
+              textDecoration: 'none',
+              color: 'var(--destructive)',
+              fontSize: 14,
+              fontWeight: 500,
+              lineHeight: 1.5,
+            }}
+          >
+            予定を見るには<strong>編集キー</strong>の設定が必要です。 家族から編集用リンクをもらって開くか、 設定画面でキーを入力してください →
+          </Link>
+        </div>
+      )}
 
       <TodayBlock />
 

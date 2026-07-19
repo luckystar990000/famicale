@@ -45,6 +45,7 @@ export default function App() {
 
   // 編集用リンク (?k=編集キー) で開かれたらキーを localStorage に保存し、 URL からは即消す
   // (ブラウザ履歴や共有時の露出を減らす)。 これで localStorage が消えてもリンクを開くだけで復元。
+  // replace (フルリロード) なのは、 既に走った各 Provider の初回 GET が 401 で終わっているため。
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const k = params.get('k')
@@ -52,7 +53,7 @@ export default function App() {
     setEditKey(k)
     params.delete('k')
     const qs = params.toString()
-    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
+    window.location.replace(window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
   }, [])
 
   return (
