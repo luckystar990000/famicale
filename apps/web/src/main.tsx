@@ -8,6 +8,11 @@ import { TimetablesProvider } from './state/timetables'
 import { LunchProvider } from './state/lunch'
 import { ShareProvider } from './state/share'
 
+// Service Worker 登録 (Web Push の受信機)。
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW register failed', err))
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

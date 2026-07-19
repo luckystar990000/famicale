@@ -22,3 +22,7 @@ bucket_name = "famicale-images"
 [ai]
 binding = "AI"
 remote = true
+
+# 前日通知: 毎日 20:00 JST (= 11:00 UTC) に scheduled ハンドラを起動
+[triggers]
+crons = ["0 11 * * *"]

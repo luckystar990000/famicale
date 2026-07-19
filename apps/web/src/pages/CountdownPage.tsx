@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Share2, X, Search } from 'lucide-react'
+import { Settings, X, Search } from 'lucide-react'
 import type { Schedule, DayOfWeek } from '@famicale/shared'
 import { classify, effectiveStart, isRecentlyEnded } from '../lib/event-status'
 import { TABS, inTab, sortForTab, emptyMessage, type TabId, type Item } from '../lib/event-filters'
@@ -135,8 +135,8 @@ export default function CountdownPage() {
         </div>
         <button
           type="button"
-          onClick={() => navigate('/share')}
-          aria-label="共有"
+          onClick={() => navigate('/settings')}
+          aria-label="設定"
           style={{
             width: 44, height: 44, borderRadius: 999,
             background: 'rgba(255, 255, 255, 0.55)',
@@ -149,7 +149,7 @@ export default function CountdownPage() {
             flexShrink: 0,
           }}
         >
-          <Share2 size={22} strokeWidth={2.2} color="var(--label)" />
+          <Settings size={22} strokeWidth={2.2} color="var(--label)" />
         </button>
       </div>
 

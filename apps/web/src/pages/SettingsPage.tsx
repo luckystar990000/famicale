@@ -1,18 +1,42 @@
-import { useState, type FocusEvent } from 'react'
+import { useState, useEffect, type FocusEvent } from 'react'
 import NavBar from '../components/NavBar'
 import AlertDialog from '../components/AlertDialog'
+import Toggle from '../components/Toggle'
 import { ListSection, ListRow } from '../components/List'
 import { useShare } from '../state/share'
 import { getEditKey, setEditKey } from '../lib/edit-key'
 import { inlineInputStyle } from '../lib/form-styles'
+import { pushSupported, getPushSubscription, enablePush, disablePush } from '../lib/push'
 
-export default function SharePage() {
+export default function SettingsPage() {
   const { shareUrl, generate, revoke } = useShare()
   const [copied, setCopied] = useState(false)
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
   const [keySaved, setKeySaved] = useState(false)
   const [editLinkCopied, setEditLinkCopied] = useState(false)
   const [editingKey, setEditingKey] = useState(false)
+  const [pushOn, setPushOn] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+
+  useEffect(() => {
+    getPushSubscription().then(sub => setPushOn(!!sub))
+  }, [])
+
+  async function togglePush() {
+    if (pushBusy) return
+    setPushBusy(true)
+    try {
+      if (pushOn) {
+        await disablePush()
+        setPushOn(false)
+      } else {
+        const ok = await enablePush()
+        setPushOn(ok)
+      }
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   function handleKeyBlur(e: FocusEvent<HTMLInputElement>) {
     setEditKey(e.target.value)
@@ -57,9 +81,18 @@ export default function SharePage() {
   return (
     <>
       <NavBar
-        title="家族と共有"
+        title="設定"
         back={{ to: '/' }}
       />
+
+      {pushSupported() && (
+        <ListSection
+          header="通知"
+          footer="予定の前日 20 時ごろに「明日〇〇」とお知らせします。 iPhone はホーム画面に追加した状態でのみ通知が届きます。"
+        >
+          <ListRow label="予定の前日通知" trailing={<Toggle on={pushOn} onChange={togglePush} disabled={pushBusy} />} />
+        </ListSection>
+      )}
 
       <ListSection
         header="編集キー"

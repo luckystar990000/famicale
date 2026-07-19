@@ -28,7 +28,7 @@ import UploadPage from './pages/UploadPage'
 import TimetablesPage from './pages/TimetablesPage'
 import TimetablePage from './pages/TimetablePage'
 import LunchPage from './pages/LunchPage'
-import SharePage from './pages/SharePage'
+import SettingsPage from './pages/SettingsPage'
 import ViewerPage from './pages/ViewerPage'
 import { setEditKey } from './lib/edit-key'
 
@@ -86,7 +86,7 @@ export default function App() {
           <Route path="/timetables" element={<TimetablesPage />} />
           <Route path="/timetables/:id" element={<TimetablePage />} />
           <Route path="/lunch" element={<LunchPage />} />
-          <Route path="/share" element={<SharePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/v/:token" element={<ViewerPage />} />
         </Routes>
       </main>
